@@ -1,5 +1,10 @@
-rootProject.name = "Kanaz Player"
-# Force Update untuk memicu GitHub Actions
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -9,4 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
+rootProject.name = "Kanaz Player"
 include(":app")
