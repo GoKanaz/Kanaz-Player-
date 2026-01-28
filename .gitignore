@@ -76,4 +76,4 @@ termux-apt-repo/
 # Runtime data
 releases/
 profile/
-tmp/
+tmp/backup_gradle_asli/
