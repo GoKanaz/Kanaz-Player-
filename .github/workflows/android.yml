@@ -22,19 +22,9 @@ jobs:
         
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: wrapper
-        
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Clean build
-      run: ./gradlew clean --no-daemon
       
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace --no-daemon
-      env:
-        GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8"
+      run: gradle assembleDebug --stacktrace --no-daemon
       
     - name: Upload APK
       uses: actions/upload-artifact@v4
@@ -42,4 +32,3 @@ jobs:
       with:
         name: app-debug
         path: app/build/outputs/apk/debug/*.apk
-        retention-days: 7
