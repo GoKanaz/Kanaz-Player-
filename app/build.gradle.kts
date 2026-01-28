@@ -79,7 +79,7 @@ dependencies {
     implementation(libs.androidx.media3.common)
 
     implementation(libs.hilt.android)
-    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+    kapt(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
 
     implementation(libs.kotlinx.coroutines.android)
