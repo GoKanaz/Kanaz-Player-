@@ -1,5 +1,7 @@
 package com.gokanaz.kanazplayer.ui.player
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,13 +12,41 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun PlayerScreen() {
-    var isPlaying by remember { mutableStateOf(false) }
-    var currentPosition by remember { mutableStateOf(0f) }
+fun PlayerScreen(
+    viewModel: PlayerViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val currentSong by viewModel.currentSong.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    
+    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        listOf(Manifest.permission.READ_MEDIA_AUDIO)
+    } else {
+        listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+    
+    val permissionsState = rememberMultiplePermissionsState(permissions) { granted ->
+        if (granted.all { it.value }) {
+            viewModel.loadSongs()
+        }
+    }
+    
+    LaunchedEffect(Unit) {
+        if (!permissionsState.allPermissionsGranted) {
+            permissionsState.launchMultiplePermissionRequest()
+        } else {
+            viewModel.loadSongs()
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -45,13 +75,13 @@ fun PlayerScreen() {
         Spacer(modifier = Modifier.height(48.dp))
         
         Text(
-            text = "Song Title",
+            text = currentSong?.title ?: "No Song",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Artist Name",
+            text = currentSong?.artist ?: "Unknown Artist",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -60,8 +90,8 @@ fun PlayerScreen() {
         
         Column(modifier = Modifier.fillMaxWidth()) {
             Slider(
-                value = currentPosition,
-                onValueChange = { currentPosition = it },
+                value = 0f,
+                onValueChange = { },
                 valueRange = 0f..100f,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -70,7 +100,8 @@ fun PlayerScreen() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("0:00", style = MaterialTheme.typography.bodySmall)
-                Text("3:45", style = MaterialTheme.typography.bodySmall)
+                Text(formatDuration(currentSong?.duration ?: 0), 
+                    style = MaterialTheme.typography.bodySmall)
             }
         }
         
@@ -82,7 +113,7 @@ fun PlayerScreen() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
-                onClick = { },
+                onClick = { viewModel.playPrevious() },
                 modifier = Modifier.size(64.dp)
             ) {
                 Icon(
@@ -93,7 +124,7 @@ fun PlayerScreen() {
             }
             
             FloatingActionButton(
-                onClick = { isPlaying = !isPlaying },
+                onClick = { viewModel.togglePlayPause() },
                 modifier = Modifier.size(80.dp),
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
@@ -105,7 +136,7 @@ fun PlayerScreen() {
             }
             
             IconButton(
-                onClick = { },
+                onClick = { viewModel.playNext() },
                 modifier = Modifier.size(64.dp)
             ) {
                 Icon(
@@ -133,4 +164,10 @@ fun PlayerScreen() {
             }
         }
     }
+}
+
+fun formatDuration(duration: Long): String {
+    val seconds = (duration / 1000) % 60
+    val minutes = (duration / (1000 * 60)) % 60
+    return String.format("%d:%02d", minutes, seconds)
 }
