@@ -137,42 +137,47 @@ fun PlayerScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Box(
-                modifier = Modifier
-                    .size(300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(120.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                Box(
+                    modifier = Modifier
+                        .size(300.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(120.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(48.dp))
+                
+                Text(
+                    text = currentSong?.title ?: "No Song",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = currentSong?.artist ?: "Unknown Artist",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
-            Spacer(modifier = Modifier.height(48.dp))
-            
-            Text(
-                text = currentSong?.title ?: "No Song",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = currentSong?.artist ?: "Unknown Artist",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 val progress = if (duration > 0) {
                     (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                 } else 0f
@@ -192,74 +197,86 @@ fun PlayerScreen(
                     Text(formatDuration(currentPosition), style = MaterialTheme.typography.bodySmall)
                     Text(formatDuration(duration), style = MaterialTheme.typography.bodySmall)
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Fixed control buttons with stable sizing
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp), // Fixed height
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { viewModel.playPrevious() },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
                 
-                // Main play button with fixed size
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Control Buttons - Wrapped in Box for stability
                 Box(
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    FloatingActionButton(
-                        onClick = { viewModel.togglePlayPause() },
-                        modifier = Modifier.size(80.dp),
-                        containerColor = MaterialTheme.colorScheme.primary
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                        // Previous Button
+                        IconButton(
+                            onClick = { viewModel.playPrevious() },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipPrevious,
+                                contentDescription = "Previous",
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                        
+                        // Play/Pause Button - Always render at same size
+                        Surface(
+                            modifier = Modifier.size(80.dp),
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            onClick = { viewModel.togglePlayPause() }
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) {
+                                        Icons.Default.Pause
+                                    } else {
+                                        Icons.Default.PlayArrow
+                                    },
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                        
+                        // Next Button
+                        IconButton(
+                            onClick = { viewModel.playNext() },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipNext,
+                                contentDescription = "Next",
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
                     }
                 }
                 
-                IconButton(
-                    onClick = { viewModel.playNext() },
-                    modifier = Modifier.size(64.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
-                }
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Repeat, contentDescription = "Repeat")
-                }
-                IconButton(onClick = onLibraryClick) {
-                    Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
+                    }
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Repeat, contentDescription = "Repeat")
+                    }
+                    IconButton(onClick = onLibraryClick) {
+                        Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
+                    }
                 }
             }
         }
