@@ -76,7 +76,6 @@ fun PlayerScreen(
         }
     }
     
-    // Auto next when song ends
     LaunchedEffect(currentPosition, duration) {
         if (duration > 0 && currentPosition >= duration - 500 && isPlaying) {
             viewModel.playNext()
@@ -150,7 +149,6 @@ fun PlayerScreen(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Album Art
             Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier
@@ -169,7 +167,6 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Song Info - Fixed padding
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -198,7 +195,6 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Progress Bar
             Column(modifier = Modifier.fillMaxWidth()) {
                 val progress = if (duration > 0) {
                     (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
@@ -223,7 +219,6 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Shuffle, Repeat, Queue
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -265,7 +260,6 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Control Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
