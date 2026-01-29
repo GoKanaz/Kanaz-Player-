@@ -151,6 +151,7 @@ fun PlayerScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Album Art
             Box(
                 modifier = Modifier
                     .size(260.dp)
@@ -168,10 +169,11 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            // 🔧 PERBAIKAN BUG #2: Berikan tinggi tetap untuk area judul lagu
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp),
+                    .height(80.dp), // Tinggi tetap untuk menghindari pergeseran
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -198,6 +200,7 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Progress Slider
             Column(modifier = Modifier.fillMaxWidth()) {
                 val progress = if (duration > 0) {
                     (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
@@ -222,6 +225,7 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
+            // Shuffle, Repeat, Queue buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -260,6 +264,7 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // 🔧 PERBAIKAN BUG #2: Gunakan Box dengan tinggi tetap untuk tombol kontrol
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
