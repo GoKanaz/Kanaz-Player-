@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.gokanaz.kanazplayer.data.model.Song
@@ -107,7 +108,18 @@ object MusicPlayerManager {
         
         if (requestAudioFocus(context)) {
             try {
-                val mediaItem = MediaItem.fromUri(song.path)
+                // Create MediaItem with metadata for notification
+                val mediaMetadata = MediaMetadata.Builder()
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .setAlbumTitle(song.album)
+                    .build()
+                
+                val mediaItem = MediaItem.Builder()
+                    .setUri(song.path)
+                    .setMediaMetadata(mediaMetadata)
+                    .build()
+                
                 player.setMediaItem(mediaItem)
                 player.prepare()
                 player.play()
