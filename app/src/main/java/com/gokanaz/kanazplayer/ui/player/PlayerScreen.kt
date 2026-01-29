@@ -172,7 +172,7 @@ fun PlayerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = currentSong?.title ?: "No Song",
+                    text = currentSong?.title, maxLines = 1, overflow = TextOverflow.Ellipsis ?: "No Song",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,

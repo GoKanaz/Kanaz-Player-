@@ -20,7 +20,7 @@ class MusicPlaybackService : MediaSessionService() {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        mediaSession = MediaSession.Builder(this, player)
+        mediaSession = MediaSession.Builder(this, player).setCallback(object : MediaSession.Callback {})
             .setSessionActivity(sessionActivityPendingIntent)
             .build()
     }
