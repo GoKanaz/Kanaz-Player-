@@ -27,12 +27,16 @@ object MusicPlayerManager {
         if (exoPlayer == null) {
             exoPlayer = ExoPlayer.Builder(context.applicationContext).build().apply {
                 addListener(object : Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        _isPlaying.value = isPlaying
-                    }
-                    
                     override fun onIsPlayingChanged(playing: Boolean) {
                         _isPlaying.value = playing
+                    }
+                    
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == Player.STATE_READY) {
+                            _duration.value = duration
+                        } else if (playbackState == Player.STATE_ENDED) {
+                            _isPlaying.value = false
+                        }
                     }
                 })
             }
@@ -43,6 +47,7 @@ object MusicPlayerManager {
     fun playSong(context: Context, song: Song) {
         val player = getPlayer(context)
         try {
+            _currentPosition.value = 0L
             val mediaItem = MediaItem.fromUri(song.path)
             player.setMediaItem(mediaItem)
             player.prepare()
@@ -59,10 +64,11 @@ object MusicPlayerManager {
         val player = getPlayer(context)
         if (player.isPlaying) {
             player.pause()
+            _isPlaying.value = false
         } else {
             player.play()
+            _isPlaying.value = true
         }
-        _isPlaying.value = player.isPlaying
     }
     
     fun seekTo(context: Context, position: Long) {
