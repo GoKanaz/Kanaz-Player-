@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -69,6 +71,13 @@ fun PlayerScreen(
             launcher.launch(permission)
         } else {
             viewModel.loadSongs()
+        }
+    }
+    
+    // Auto next when song ends
+    LaunchedEffect(currentPosition, duration) {
+        if (duration > 0 && currentPosition >= duration - 500 && isPlaying) {
+            viewModel.playNext()
         }
     }
     
@@ -136,7 +145,8 @@ fun PlayerScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(24.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 16.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -147,7 +157,7 @@ fun PlayerScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(300.dp)
+                        .size(280.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
@@ -160,18 +170,31 @@ fun PlayerScreen(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(32.dp))
                 
+                // Song title - with proper text overflow
                 Text(
                     text = currentSong?.title ?: "No Song",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = currentSong?.artist ?: "Unknown Artist",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    textAlign = TextAlign.Center
                 )
             }
             
@@ -198,9 +221,43 @@ fun PlayerScreen(
                     Text(formatDuration(duration), style = MaterialTheme.typography.bodySmall)
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
-                // Control Buttons - Wrapped in Box for stability
+                // Shuffle, Repeat, Queue - MOVED TO TOP
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    IconButton(onClick = { viewModel.toggleShuffle() }) {
+                        Icon(
+                            Icons.Default.Shuffle,
+                            contentDescription = "Shuffle",
+                            tint = if (viewModel.isShuffleEnabled.collectAsState().value) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                    IconButton(onClick = { viewModel.toggleRepeat() }) {
+                        Icon(
+                            Icons.Default.Repeat,
+                            contentDescription = "Repeat",
+                            tint = if (viewModel.isRepeatEnabled.collectAsState().value) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                    IconButton(onClick = onLibraryClick) {
+                        Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Control Buttons
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -212,7 +269,6 @@ fun PlayerScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Previous Button
                         IconButton(
                             onClick = { viewModel.playPrevious() },
                             modifier = Modifier.size(64.dp)
@@ -224,7 +280,6 @@ fun PlayerScreen(
                             )
                         }
                         
-                        // Play/Pause Button - Always render at same size
                         Surface(
                             modifier = Modifier.size(80.dp),
                             shape = MaterialTheme.shapes.extraLarge,
@@ -248,7 +303,6 @@ fun PlayerScreen(
                             }
                         }
                         
-                        // Next Button
                         IconButton(
                             onClick = { viewModel.playNext() },
                             modifier = Modifier.size(64.dp)
@@ -259,23 +313,6 @@ fun PlayerScreen(
                                 modifier = Modifier.size(40.dp)
                             )
                         }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
-                    }
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Repeat, contentDescription = "Repeat")
-                    }
-                    IconButton(onClick = onLibraryClick) {
-                        Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
                     }
                 }
             }

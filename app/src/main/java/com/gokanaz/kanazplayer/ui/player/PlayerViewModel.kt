@@ -27,6 +27,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _duration = MutableStateFlow(0L)
     val duration: StateFlow<Long> = _duration
     
+    private val _isShuffleEnabled = MutableStateFlow(false)
+    val isShuffleEnabled: StateFlow<Boolean> = _isShuffleEnabled
+    
+    private val _isRepeatEnabled = MutableStateFlow(false)
+    val isRepeatEnabled: StateFlow<Boolean> = _isRepeatEnabled
+    
     val isPlaying = playerService.isPlaying
     
     init {
@@ -75,17 +81,41 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playNext() {
+        if (_isRepeatEnabled.value) {
+            // Repeat current song
+            _currentSong.value?.let { playSong(it) }
+            return
+        }
+        
         val currentIndex = _songs.value.indexOf(_currentSong.value)
-        if (currentIndex < _songs.value.size - 1) {
-            playSong(_songs.value[currentIndex + 1])
+        val nextIndex = if (_isShuffleEnabled.value) {
+            // Random next
+            (0 until _songs.value.size).filter { it != currentIndex }.randomOrNull() ?: 0
+        } else {
+            // Sequential next
+            if (currentIndex < _songs.value.size - 1) currentIndex + 1 else 0
+        }
+        
+        if (nextIndex < _songs.value.size) {
+            playSong(_songs.value[nextIndex])
         }
     }
     
     fun playPrevious() {
         val currentIndex = _songs.value.indexOf(_currentSong.value)
-        if (currentIndex > 0) {
-            playSong(_songs.value[currentIndex - 1])
+        val prevIndex = if (currentIndex > 0) currentIndex - 1 else _songs.value.size - 1
+        
+        if (prevIndex >= 0 && prevIndex < _songs.value.size) {
+            playSong(_songs.value[prevIndex])
         }
+    }
+    
+    fun toggleShuffle() {
+        _isShuffleEnabled.value = !_isShuffleEnabled.value
+    }
+    
+    fun toggleRepeat() {
+        _isRepeatEnabled.value = !_isRepeatEnabled.value
     }
     
     override fun onCleared() {
