@@ -65,7 +65,7 @@ fun PlayerScreen(
     
     LaunchedEffect(Unit) {
         if (!hasPermission) {
-            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = if (Build.VERSION.VERSION_CODES.TIRAMISU <= Build.VERSION.SDK_INT) {
                 Manifest.permission.READ_MEDIA_AUDIO
             } else {
                 Manifest.permission.READ_EXTERNAL_STORAGE
@@ -172,7 +172,7 @@ fun PlayerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = currentSong?.title, maxLines = 1, overflow = TextOverflow.Ellipsis ?: "No Song",
+                    text = currentSong?.title ?: "No Song",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
