@@ -65,7 +65,7 @@ fun PlayerScreen(
     
     LaunchedEffect(Unit) {
         if (!hasPermission) {
-            val permission = if (Build.VERSION.VERSION_CODES.TIRAMISU <= Build.VERSION.SDK_INT) {
+            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 Manifest.permission.READ_MEDIA_AUDIO
             } else {
                 Manifest.permission.READ_EXTERNAL_STORAGE
@@ -178,8 +178,7 @@ fun PlayerScreen(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
+                    modifier = Modifier.fillMaxWidth(0.9f)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -223,9 +222,7 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                IconButton(
-                    onClick = { viewModel.toggleShuffle() }
-                ) {
+                IconButton(onClick = { viewModel.toggleShuffle() }) {
                     Icon(
                         Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
@@ -236,9 +233,7 @@ fun PlayerScreen(
                         }
                     )
                 }
-                IconButton(
-                    onClick = { viewModel.toggleRepeat() }
-                ) {
+                IconButton(onClick = { viewModel.toggleRepeat() }) {
                     Icon(
                         Icons.Default.Repeat,
                         contentDescription = "Repeat",

@@ -1,18 +1,27 @@
 package com.gokanaz.kanazplayer.service
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import androidx.core.app.NotificationCompat
 import androidx.media3.common.Player
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.gokanaz.kanazplayer.MainActivity
+import com.gokanaz.kanazplayer.R
 
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
+    private val CHANNEL_ID = "music_playback_channel"
+    private val NOTIFICATION_ID = 1001
 
     override fun onCreate() {
         super.onCreate()
+        
+        createNotificationChannel()
         
         val player = MusicPlayerManager.getPlayer(this)
         
@@ -31,51 +40,44 @@ class MusicPlaybackService : MediaSessionService() {
         
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isPlaying) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(
-                            NOTIFICATION_ID,
-                            createNotification(),
-                            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                        )
-                    } else {
-                        startForeground(NOTIFICATION_ID, createNotification())
-                    }
-                }
+                updateNotification(isPlaying)
             }
         })
     }
     
-    private fun createNotification(): android.app.Notification {
-        val notificationManager = androidx.media3.session.MediaNotification.Provider { session ->
-            androidx.media3.session.DefaultMediaNotificationProvider(this).createNotification(
-                session,
-                emptyList(),
-                androidx.media3.session.MediaNotification.ActionFactory { _, _ ->
-                    android.app.Notification.Action.Builder(
-                        android.R.drawable.ic_media_play,
-                        "Play",
-                        null
-                    ).build()
-                },
-                object : androidx.media3.session.MediaNotification.Provider.Callback {
-                    override fun onNotificationChanged(notification: androidx.media3.session.MediaNotification) { 
-                    }
-                }
-            )
-        }
-        
-        val channelId = "music_playback"
+    private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
-                channelId,
+            val channel = NotificationChannel(
+                CHANNEL_ID,
                 "Music Playback",
-                android.app.NotificationManager.IMPORTANCE_LOW
-            )
-            val nm = getSystemService(android.app.NotificationManager::class.java)
-            nm.createNotificationChannel(channel)
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Music playback controls"
+                setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
+            
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
         }
-        
+    }
+    
+    private fun updateNotification(isPlaying: Boolean) {
+        val notification = createNotification(isPlaying)
+        if (isPlaying) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        }
+    }
+    
+    private fun createNotification(isPlaying: Boolean): Notification {
         val contentIntent = PendingIntent.getActivity(
             this,
             0,
@@ -83,19 +85,86 @@ class MusicPlaybackService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        return androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(androidx.media3.session.R.drawable.media3_icon_circular_play)
-            .setContentTitle(MusicPlayerManager.currentSong.value?.title ?: "Kanaz Player")
-            .setContentText(MusicPlayerManager.currentSong.value?.artist ?: "Unknown Artist")
+        val currentSong = MusicPlayerManager.currentSong.value
+        
+        val playPauseIntent = Intent(this, MusicPlaybackService::class.java).apply {
+            action = ACTION_PLAY_PAUSE
+        }
+        val playPausePendingIntent = PendingIntent.getService(
+            this,
+            0,
+            playPauseIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val previousIntent = Intent(this, MusicPlaybackService::class.java).apply {
+            action = ACTION_PREVIOUS
+        }
+        val previousPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            previousIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val nextIntent = Intent(this, MusicPlaybackService::class.java).apply {
+            action = ACTION_NEXT
+        }
+        val nextPendingIntent = PendingIntent.getService(
+            this,
+            2,
+            nextIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(currentSong?.title ?: "Kanaz Player")
+            .setContentText(currentSong?.artist ?: "Unknown Artist")
+            .setSubText(currentSong?.album ?: "")
             .setContentIntent(contentIntent)
+            .addAction(
+                android.R.drawable.ic_media_previous,
+                "Previous",
+                previousPendingIntent
+            )
+            .addAction(
+                if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+                if (isPlaying) "Pause" else "Play",
+                playPausePendingIntent
+            )
+            .addAction(
+                android.R.drawable.ic_media_next,
+                "Next",
+                nextPendingIntent
+            )
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView(0, 1, 2)
                     .setMediaSession(mediaSession?.sessionCompatToken)
             )
-            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
-            .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(true)
+            .setOngoing(isPlaying)
             .build()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_PLAY_PAUSE -> {
+                mediaSession?.player?.let { player ->
+                    if (player.isPlaying) player.pause() else player.play()
+                }
+            }
+            ACTION_PREVIOUS -> {
+                mediaSession?.player?.seekToPrevious()
+            }
+            ACTION_NEXT -> {
+                mediaSession?.player?.seekToNext()
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -119,6 +188,8 @@ class MusicPlaybackService : MediaSessionService() {
     }
     
     companion object {
-        private const val NOTIFICATION_ID = 1001
+        private const val ACTION_PLAY_PAUSE = "com.gokanaz.kanazplayer.PLAY_PAUSE"
+        private const val ACTION_PREVIOUS = "com.gokanaz.kanazplayer.PREVIOUS"
+        private const val ACTION_NEXT = "com.gokanaz.kanazplayer.NEXT"
     }
 }
