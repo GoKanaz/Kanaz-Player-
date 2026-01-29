@@ -22,27 +22,17 @@ object MusicPlayerManager {
     
     private val _currentSong = MutableStateFlow<Song?>(null)
     val currentSong: StateFlow<Song?> = _currentSong
-
-    private var isTransitioning = false
     
     fun getPlayer(context: Context): ExoPlayer {
         if (exoPlayer == null) {
             exoPlayer = ExoPlayer.Builder(context.applicationContext).build().apply {
                 addListener(object : Player.Listener {
-                    override fun onIsPlayingChanged(playing: Boolean) {
-                        if (!isTransitioning) {
-                            _isPlaying.value = playing
-                        }
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        _isPlaying.value = isPlaying
                     }
                     
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == Player.STATE_READY) {
-                            _duration.value = duration
-                            isTransitioning = false
-                            _isPlaying.value = isPlaying
-                        } else if (playbackState == Player.STATE_ENDED) {
-                            _isPlaying.value = false
-                        }
+                    override fun onIsPlayingChanged(playing: Boolean) {
+                        _isPlaying.value = playing
                     }
                 })
             }
@@ -53,20 +43,14 @@ object MusicPlayerManager {
     fun playSong(context: Context, song: Song) {
         val player = getPlayer(context)
         try {
-            isTransitioning = true
-            _isPlaying.value = true
-            _currentPosition.value = 0L
-            
             val mediaItem = MediaItem.fromUri(song.path)
             player.setMediaItem(mediaItem)
             player.prepare()
             player.play()
-            
             _currentSong.value = song
+            _isPlaying.value = true
             _duration.value = song.duration
         } catch (e: Exception) {
-            isTransitioning = false
-            _isPlaying.value = false
             e.printStackTrace()
         }
     }
@@ -75,11 +59,10 @@ object MusicPlayerManager {
         val player = getPlayer(context)
         if (player.isPlaying) {
             player.pause()
-            _isPlaying.value = false
         } else {
             player.play()
-            _isPlaying.value = true
         }
+        _isPlaying.value = player.isPlaying
     }
     
     fun seekTo(context: Context, position: Long) {
@@ -93,8 +76,8 @@ object MusicPlayerManager {
     }
     
     fun getDuration(context: Context): Long {
-        val d = getPlayer(context).duration
-        return if (d > 0) d else 0L
+        val duration = getPlayer(context).duration
+        return if (duration > 0) duration else 0
     }
     
     fun release() {
@@ -103,4 +86,3 @@ object MusicPlayerManager {
         _isPlaying.value = false
     }
 }
-// Update: Thu Jan 29 12:56:04 WIB 2026
