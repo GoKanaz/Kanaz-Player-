@@ -258,3 +258,4 @@ fun formatDuration(millis: Long): String {
     val minutes = (millis / (1000 * 60)) % 60
     return String.format("%d:%02d", minutes, seconds)
 }
+ 
