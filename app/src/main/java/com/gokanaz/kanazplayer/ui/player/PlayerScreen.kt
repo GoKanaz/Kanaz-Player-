@@ -34,38 +34,28 @@ fun PlayerScreen(
     val duration by viewModel.duration.collectAsState()
     val songs by viewModel.songs.collectAsState()
     
+    val displayIcon = remember(isPlaying, currentSong) {
+        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow
+    }
+    
     var hasPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_MEDIA_AUDIO
-                ) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
             } else {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
             }
         )
     }
     
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         hasPermission = isGranted
-        if (isGranted) {
-            viewModel.loadSongs()
-        }
+        if (isGranted) viewModel.loadSongs()
     }
     
     LaunchedEffect(Unit) {
         if (!hasPermission) {
-            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Manifest.permission.READ_MEDIA_AUDIO
-            } else {
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            }
+            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
             launcher.launch(permission)
         } else {
             viewModel.loadSongs()
@@ -73,39 +63,15 @@ fun PlayerScreen(
     }
     
     if (!hasPermission) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Storage permission required",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "We need permission to read your music files",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Text("Permission required", style = MaterialTheme.typography.titleMedium)
                 Button(onClick = {
-                    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        Manifest.permission.READ_MEDIA_AUDIO
-                    } else {
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                    }
-                    launcher.launch(permission)
-                }) {
-                    Text("Grant Permission")
-                }
+                    val p = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
+                    launcher.launch(p)
+                }) { Text("Grant") }
             }
         }
         return
@@ -117,15 +83,10 @@ fun PlayerScreen(
                 title = { Text("Now Playing") },
                 actions = {
                     IconButton(onClick = onLibraryClick) {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ) {
-                            Text("${songs.size}")
-                        }
+                        Badge(containerColor = MaterialTheme.colorScheme.primary) { Text("${songs.size}") }
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = onLibraryClick) {
-                        Icon(Icons.Default.LibraryMusic, contentDescription = "Library")
+                        Icon(Icons.Default.LibraryMusic, "Library")
                     }
                 }
             )
@@ -140,114 +101,53 @@ fun PlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
-            
             Box(
-                modifier = Modifier
-                    .size(300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.size(300.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(120.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(120.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
-            
             Spacer(modifier = Modifier.height(48.dp))
-            
-            Text(
-                text = currentSong?.title ?: "No Song",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = currentSong?.artist ?: "Unknown Artist",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
+            Text(text = currentSong?.title ?: "No Song", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(text = currentSong?.artist ?: "Unknown Artist", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(32.dp))
-            
             Column(modifier = Modifier.fillMaxWidth()) {
                 val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
-                Slider(
-                    value = progress,
-                    onValueChange = { newValue ->
-                        val newPosition = (newValue * duration).toLong()
-                        viewModel.seekTo(newPosition)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                Slider(value = progress, onValueChange = { viewModel.seekTo((it * duration).toLong()) }, modifier = Modifier.fillMaxWidth())
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(formatDuration(currentPosition), style = MaterialTheme.typography.bodySmall)
                     Text(formatDuration(duration), style = MaterialTheme.typography.bodySmall)
                 }
             }
-            
             Spacer(modifier = Modifier.height(32.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { viewModel.playPrevious() },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
-                        modifier = Modifier.size(40.dp)
-                    )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { viewModel.playPrevious() }, modifier = Modifier.size(64.dp)) {
+                    Icon(Icons.Default.SkipPrevious, "Prev", modifier = Modifier.size(40.dp))
                 }
                 
-                FloatingActionButton(
-                    onClick = { viewModel.togglePlayPause() },
-                    modifier = Modifier.size(80.dp),
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(48.dp)
-                    )
+                Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.Center) {
+                    FloatingActionButton(
+                        onClick = { viewModel.togglePlayPause() },
+                        modifier = Modifier.size(80.dp),
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = displayIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
                 }
                 
-                IconButton(
-                    onClick = { viewModel.playNext() },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
-                        modifier = Modifier.size(40.dp)
-                    )
+                IconButton(onClick = { viewModel.playNext() }, modifier = Modifier.size(64.dp)) {
+                    Icon(Icons.Default.SkipNext, "Next", modifier = Modifier.size(40.dp))
                 }
             }
-            
             Spacer(modifier = Modifier.height(32.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
-                }
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Repeat, contentDescription = "Repeat")
-                }
-                IconButton(onClick = onLibraryClick) {
-                    Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                IconButton(onClick = { }) { Icon(Icons.Default.Shuffle, "Shuffle") }
+                IconButton(onClick = { }) { Icon(Icons.Default.Repeat, "Repeat") }
+                IconButton(onClick = onLibraryClick) { Icon(Icons.Default.QueueMusic, "Queue") }
             }
         }
     }
@@ -258,4 +158,3 @@ fun formatDuration(millis: Long): String {
     val minutes = (millis / (1000 * 60)) % 60
     return String.format("%d:%02d", minutes, seconds)
 }
- 
