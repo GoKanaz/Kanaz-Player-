@@ -108,6 +108,7 @@ object MusicPlayerManager {
         
         if (requestAudioFocus(context)) {
             try {
+                
                 val mediaMetadata = MediaMetadata.Builder()
                     .setTitle(song.title)
                     .setArtist(song.artist)
