@@ -21,15 +21,18 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
-    viewModel: PlayerViewModel = viewModel()
+    viewModel: PlayerViewModel = viewModel(),
+    onLibraryClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
+    val songs by viewModel.songs.collectAsState()
     
     var hasPermission by remember {
         mutableStateOf(
@@ -108,121 +111,143 @@ fun PlayerScreen(
         return
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        Box(
-            modifier = Modifier
-                .size(300.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                modifier = Modifier.size(120.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Now Playing") },
+                actions = {
+                    IconButton(onClick = onLibraryClick) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ) {
+                            Text("${songs.size}")
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(onClick = onLibraryClick) {
+                        Icon(Icons.Default.LibraryMusic, contentDescription = "Library")
+                    }
+                }
             )
         }
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        Text(
-            text = currentSong?.title ?: "No Song",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = currentSong?.artist ?: "Unknown Artist",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Column(modifier = Modifier.fillMaxWidth()) {
-            val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
-            Slider(
-                value = progress,
-                onValueChange = { newValue ->
-                    val newPosition = (newValue * duration).toLong()
-                    viewModel.seekTo(newPosition)
-                },
-                modifier = Modifier.fillMaxWidth()
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Box(
+                modifier = Modifier
+                    .size(300.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(120.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            Text(
+                text = currentSong?.title ?: "No Song",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = currentSong?.artist ?: "Unknown Artist",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Column(modifier = Modifier.fillMaxWidth()) {
+                val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
+                Slider(
+                    value = progress,
+                    onValueChange = { newValue ->
+                        val newPosition = (newValue * duration).toLong()
+                        viewModel.seekTo(newPosition)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(formatDuration(currentPosition), style = MaterialTheme.typography.bodySmall)
+                    Text(formatDuration(duration), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(formatDuration(currentPosition), style = MaterialTheme.typography.bodySmall)
-                Text(formatDuration(duration), style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = { viewModel.playPrevious() },
-                modifier = Modifier.size(64.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SkipPrevious,
-                    contentDescription = "Previous",
-                    modifier = Modifier.size(40.dp)
-                )
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                
+                FloatingActionButton(
+                    onClick = { viewModel.togglePlayPause() },
+                    modifier = Modifier.size(80.dp),
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+                
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
             }
             
-            FloatingActionButton(
-                onClick = { viewModel.togglePlayPause() },
-                modifier = Modifier.size(80.dp),
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    modifier = Modifier.size(48.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(32.dp))
             
-            IconButton(
-                onClick = { viewModel.playNext() },
-                modifier = Modifier.size(64.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Icon(
-                    imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next",
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
-            }
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.Repeat, contentDescription = "Repeat")
-            }
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.QueueMusic, contentDescription = "Playlist")
+                IconButton(onClick = { }) {
+                    Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
+                }
+                IconButton(onClick = { }) {
+                    Icon(Icons.Default.Repeat, contentDescription = "Repeat")
+                }
+                IconButton(onClick = onLibraryClick) {
+                    Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
+                }
             }
         }
     }
