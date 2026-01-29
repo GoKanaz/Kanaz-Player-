@@ -67,7 +67,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun togglePlayPause() {
         _currentSong.value?.let { song ->
-            if (!isPlaying.value && playerService.getCurrentPosition() == 0L) {
+            if (!isPlaying.value && playerService.getCurrentPosition() == 0L && playerService.getDuration() == 0L) {
                 playerService.playSong(song)
             } else {
                 playerService.togglePlayPause()
@@ -81,29 +81,54 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playNext() {
+        if (_songs.value.isEmpty()) return
+        
+        val currentIndex = _songs.value.indexOf(_currentSong.value)
+        
         if (_isRepeatEnabled.value) {
-            // Repeat current song
             _currentSong.value?.let { playSong(it) }
             return
         }
         
-        val currentIndex = _songs.value.indexOf(_currentSong.value)
         val nextIndex = if (_isShuffleEnabled.value) {
-            // Random next
-            (0 until _songs.value.size).filter { it != currentIndex }.randomOrNull() ?: 0
+            val availableIndices = _songs.value.indices.filter { it != currentIndex }
+            if (availableIndices.isNotEmpty()) {
+                availableIndices.random()
+            } else {
+                currentIndex
+            }
         } else {
-            // Sequential next
-            if (currentIndex < _songs.value.size - 1) currentIndex + 1 else 0
+            if (currentIndex >= 0 && currentIndex < _songs.value.size - 1) {
+                currentIndex + 1
+            } else {
+                0
+            }
         }
         
-        if (nextIndex < _songs.value.size) {
+        if (nextIndex >= 0 && nextIndex < _songs.value.size) {
             playSong(_songs.value[nextIndex])
         }
     }
     
     fun playPrevious() {
+        if (_songs.value.isEmpty()) return
+        
         val currentIndex = _songs.value.indexOf(_currentSong.value)
-        val prevIndex = if (currentIndex > 0) currentIndex - 1 else _songs.value.size - 1
+        
+        val prevIndex = if (_isShuffleEnabled.value) {
+            val availableIndices = _songs.value.indices.filter { it != currentIndex }
+            if (availableIndices.isNotEmpty()) {
+                availableIndices.random()
+            } else {
+                currentIndex
+            }
+        } else {
+            if (currentIndex > 0) {
+                currentIndex - 1
+            } else {
+                _songs.value.size - 1
+            }
+        }
         
         if (prevIndex >= 0 && prevIndex < _songs.value.size) {
             playSong(_songs.value[prevIndex])
