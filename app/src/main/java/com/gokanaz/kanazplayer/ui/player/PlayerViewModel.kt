@@ -6,13 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.data.repository.MusicRepository
 import com.gokanaz.kanazplayer.service.MusicPlayerService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MusicRepository(application)
-    private val playerService = MusicPlayerService()
+    private val playerService = MusicPlayerService(application)
     
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs
@@ -20,10 +21,28 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentSong = MutableStateFlow<Song?>(null)
     val currentSong: StateFlow<Song?> = _currentSong
     
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition: StateFlow<Long> = _currentPosition
+    
+    private val _duration = MutableStateFlow(0L)
+    val duration: StateFlow<Long> = _duration
+    
     val isPlaying = playerService.isPlaying
     
     init {
-        loadSongs()
+        startPositionUpdater()
+    }
+    
+    private fun startPositionUpdater() {
+        viewModelScope.launch {
+            while (true) {
+                if (isPlaying.value) {
+                    _currentPosition.value = playerService.getCurrentPosition()
+                    _duration.value = playerService.getDuration()
+                }
+                delay(100)
+            }
+        }
     }
     
     fun loadSongs() {
@@ -42,16 +61,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun togglePlayPause() {
         _currentSong.value?.let { song ->
-            if (playerService.isPlaying.value) {
-                playerService.togglePlayPause()
-            } else {
+            if (!isPlaying.value && playerService.getCurrentPosition() == 0L) {
                 playerService.playSong(song)
+            } else {
+                playerService.togglePlayPause()
             }
         }
     }
     
-    fun seekTo(position: Int) {
+    fun seekTo(position: Long) {
         playerService.seekTo(position)
+        _currentPosition.value = position
     }
     
     fun playNext() {
