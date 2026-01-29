@@ -1,6 +1,12 @@
 package com.gokanaz.kanazplayer.service
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
+import androidx.media3.common.AudioAttributes as Media3AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -10,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 
 object MusicPlayerManager {
     private var exoPlayer: ExoPlayer? = null
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
     
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
@@ -23,35 +31,92 @@ object MusicPlayerManager {
     private val _currentSong = MutableStateFlow<Song?>(null)
     val currentSong: StateFlow<Song?> = _currentSong
     
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                exoPlayer?.volume = 1.0f
+                exoPlayer?.play()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                exoPlayer?.pause()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                exoPlayer?.volume = 0.3f
+            }
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                exoPlayer?.pause()
+            }
+        }
+    }
+    
     fun getPlayer(context: Context): ExoPlayer {
         if (exoPlayer == null) {
-            exoPlayer = ExoPlayer.Builder(context.applicationContext).build().apply {
-                addListener(object : Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        _isPlaying.value = isPlaying
-                    }
-                    
-                    override fun onIsPlayingChanged(playing: Boolean) {
-                        _isPlaying.value = playing
-                    }
-                })
-            }
+            audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            
+            val audioAttributes = Media3AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                .build()
+            
+            exoPlayer = ExoPlayer.Builder(context.applicationContext)
+                .setAudioAttributes(audioAttributes, true)
+                .setHandleAudioBecomingNoisy(true)
+                .setWakeMode(C.WAKE_MODE_LOCAL)
+                .build().apply {
+                    addListener(object : Player.Listener {
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            _isPlaying.value = isPlaying
+                        }
+                        
+                        override fun onIsPlayingChanged(playing: Boolean) {
+                            _isPlaying.value = playing
+                        }
+                    })
+                }
         }
         return exoPlayer!!
     }
     
+    private fun requestAudioFocus(context: Context): Boolean {
+        audioManager = audioManager ?: context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+            
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(audioAttributes)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+            
+            audioManager?.requestAudioFocus(audioFocusRequest!!) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+    }
+    
     fun playSong(context: Context, song: Song) {
         val player = getPlayer(context)
-        try {
-            val mediaItem = MediaItem.fromUri(song.path)
-            player.setMediaItem(mediaItem)
-            player.prepare()
-            player.play()
-            _currentSong.value = song
-            _isPlaying.value = true
-            _duration.value = song.duration
-        } catch (e: Exception) {
-            e.printStackTrace()
+        
+        if (requestAudioFocus(context)) {
+            try {
+                val mediaItem = MediaItem.fromUri(song.path)
+                player.setMediaItem(mediaItem)
+                player.prepare()
+                player.play()
+                _currentSong.value = song
+                _isPlaying.value = true
+                _duration.value = song.duration
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
@@ -60,7 +125,9 @@ object MusicPlayerManager {
         if (player.isPlaying) {
             player.pause()
         } else {
-            player.play()
+            if (requestAudioFocus(context)) {
+                player.play()
+            }
         }
         _isPlaying.value = player.isPlaying
     }
@@ -83,6 +150,14 @@ object MusicPlayerManager {
     fun release() {
         exoPlayer?.release()
         exoPlayer = null
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.abandonAudioFocus(audioFocusChangeListener)
+        }
+        
         _isPlaying.value = false
     }
 }
