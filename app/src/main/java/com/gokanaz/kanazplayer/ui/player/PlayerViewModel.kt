@@ -1,6 +1,7 @@
 package com.gokanaz.kanazplayer.ui.player
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gokanaz.kanazplayer.data.model.Song
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+    private val TAG = "PlayerViewModel"
     private val repository = MusicRepository(application)
     private val playerService = MusicPlayerService(application)
     
@@ -54,27 +56,33 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun loadSongs() {
         viewModelScope.launch {
             _songs.value = repository.getAllSongs()
+            Log.d(TAG, "Loaded ${_songs.value.size} songs")
             if (_songs.value.isNotEmpty() && _currentSong.value == null) {
                 _currentSong.value = _songs.value.first()
+                Log.d(TAG, "Set current song to: ${_currentSong.value?.title}")
             }
         }
     }
     
     fun playSong(song: Song) {
+        Log.d(TAG, "playSong: ${song.title}")
         _currentSong.value = song
         playerService.playSong(song)
     }
     
-    // 🔧 PERBAIKAN BUG #1: Simplifikasi logika togglePlayPause
     fun togglePlayPause() {
-        _currentSong.value?.let { song ->
-            // Jika tidak sedang playing dan belum ada lagu yang dimainkan, play lagu saat ini
-            if (!isPlaying.value && playerService.getCurrentPosition() == 0L && playerService.getDuration() == 0L) {
-                playerService.playSong(song)
-            } else {
-                // Toggle pause/play
-                playerService.togglePlayPause()
-            }
+        val song = _currentSong.value
+        Log.d(TAG, "togglePlayPause - current song: ${song?.title}, isPlaying: ${isPlaying.value}")
+        
+        if (song == null) {
+            Log.w(TAG, "No song selected")
+            return
+        }
+        
+        if (!isPlaying.value) {
+            playerService.playSong(song)
+        } else {
+            playerService.togglePlayPause()
         }
     }
     
@@ -83,20 +91,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         _currentPosition.value = position
     }
     
-    // 🔧 PERBAIKAN BUG #3 & #4: Perbaiki logika playNext
     fun playNext() {
-        if (_songs.value.isEmpty()) return
+        if (_songs.value.isEmpty()) {
+            Log.w(TAG, "No songs available")
+            return
+        }
         
         val currentIndex = _songs.value.indexOf(_currentSong.value)
         
-        // Jika repeat enabled, ulangi lagu saat ini
         if (_isRepeatEnabled.value) {
             _currentSong.value?.let { playSong(it) }
             return
         }
         
         val nextIndex = if (_isShuffleEnabled.value) {
-            // Random next (pastikan tidak sama dengan current)
             val availableIndices = _songs.value.indices.filter { it != currentIndex }
             if (availableIndices.isNotEmpty()) {
                 availableIndices.random()
@@ -104,7 +112,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 currentIndex
             }
         } else {
-            // Sequential next (loop ke awal jika sudah di akhir)
             if (currentIndex >= 0 && currentIndex < _songs.value.size - 1) {
                 currentIndex + 1
             } else {
@@ -112,19 +119,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         
-        // Play lagu berikutnya
         if (nextIndex >= 0 && nextIndex < _songs.value.size) {
             playSong(_songs.value[nextIndex])
         }
     }
     
     fun playPrevious() {
-        if (_songs.value.isEmpty()) return
+        if (_songs.value.isEmpty()) {
+            Log.w(TAG, "No songs available")
+            return
+        }
         
         val currentIndex = _songs.value.indexOf(_currentSong.value)
         
         val prevIndex = if (_isShuffleEnabled.value) {
-            // Random previous (pastikan tidak sama dengan current)
             val availableIndices = _songs.value.indices.filter { it != currentIndex }
             if (availableIndices.isNotEmpty()) {
                 availableIndices.random()
@@ -132,7 +140,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 currentIndex
             }
         } else {
-            // Sequential previous (loop ke akhir jika sudah di awal)
             if (currentIndex > 0) {
                 currentIndex - 1
             } else {
@@ -147,10 +154,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun toggleShuffle() {
         _isShuffleEnabled.value = !_isShuffleEnabled.value
+        Log.d(TAG, "Shuffle: ${_isShuffleEnabled.value}")
     }
     
     fun toggleRepeat() {
         _isRepeatEnabled.value = !_isRepeatEnabled.value
+        Log.d(TAG, "Repeat: ${_isRepeatEnabled.value}")
     }
     
     override fun onCleared() {
