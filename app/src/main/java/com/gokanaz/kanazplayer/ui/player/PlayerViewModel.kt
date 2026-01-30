@@ -38,6 +38,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val isPlaying = playerService.isPlaying
     
     init {
+        Log.d(TAG, "PlayerViewModel initialized")
         startPositionUpdater()
     }
     
@@ -55,8 +56,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun loadSongs() {
         viewModelScope.launch {
+            Log.d(TAG, "Loading songs...")
             _songs.value = repository.getAllSongs()
             Log.d(TAG, "Loaded ${_songs.value.size} songs")
+            
             if (_songs.value.isNotEmpty() && _currentSong.value == null) {
                 _currentSong.value = _songs.value.first()
                 Log.d(TAG, "Set current song to: ${_currentSong.value?.title}")
@@ -65,23 +68,41 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playSong(song: Song) {
-        Log.d(TAG, "playSong: ${song.title}")
+        Log.d(TAG, "======================================")
+        Log.d(TAG, "playSong called from UI")
+        Log.d(TAG, "Song: ${song.title}")
+        Log.d(TAG, "Path: ${song.path}")
+        Log.d(TAG, "======================================")
         _currentSong.value = song
         playerService.playSong(song)
     }
     
     fun togglePlayPause() {
         val song = _currentSong.value
-        Log.d(TAG, "togglePlayPause - current song: ${song?.title}, isPlaying: ${isPlaying.value}")
+        val playing = isPlaying.value
+        
+        Log.d(TAG, "======================================")
+        Log.d(TAG, "togglePlayPause called")
+        Log.d(TAG, "Current song: ${song?.title ?: "NULL"}")
+        Log.d(TAG, "Is playing: $playing")
+        Log.d(TAG, "======================================")
         
         if (song == null) {
-            Log.w(TAG, "No song selected")
+            Log.e(TAG, "❌ No song selected!")
+            if (_songs.value.isNotEmpty()) {
+                Log.d(TAG, "Auto-selecting first song")
+                val firstSong = _songs.value.first()
+                _currentSong.value = firstSong
+                playerService.playSong(firstSong)
+            }
             return
         }
         
-        if (!isPlaying.value) {
+        if (!playing) {
+            Log.d(TAG, "Not playing - calling playSong")
             playerService.playSong(song)
         } else {
+            Log.d(TAG, "Is playing - calling togglePlayPause")
             playerService.togglePlayPause()
         }
     }
@@ -98,6 +119,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         
         val currentIndex = _songs.value.indexOf(_currentSong.value)
+        Log.d(TAG, "playNext - current index: $currentIndex")
         
         if (_isRepeatEnabled.value) {
             _currentSong.value?.let { playSong(it) }
@@ -119,6 +141,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         
+        Log.d(TAG, "Playing next at index: $nextIndex")
         if (nextIndex >= 0 && nextIndex < _songs.value.size) {
             playSong(_songs.value[nextIndex])
         }
@@ -147,6 +170,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         
+        Log.d(TAG, "Playing previous at index: $prevIndex")
         if (prevIndex >= 0 && prevIndex < _songs.value.size) {
             playSong(_songs.value[prevIndex])
         }
@@ -164,6 +188,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     override fun onCleared() {
         super.onCleared()
+        Log.d(TAG, "PlayerViewModel cleared")
         playerService.release()
     }
 }
