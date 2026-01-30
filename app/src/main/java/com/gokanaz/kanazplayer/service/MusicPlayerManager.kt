@@ -41,9 +41,6 @@ object MusicPlayerManager {
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 exoPlayer?.volume = 1.0f
-                if (_isPlaying.value) {
-                    exoPlayer?.play()
-                }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 exoPlayer?.pause()
@@ -53,7 +50,6 @@ object MusicPlayerManager {
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
                 exoPlayer?.pause()
-                _isPlaying.value = false
             }
         }
     }
@@ -96,8 +92,8 @@ object MusicPlayerManager {
                         }
                         
                         override fun onIsPlayingChanged(playing: Boolean) {
+                            Log.d(TAG, "onIsPlayingChanged: $playing")
                             _isPlaying.value = playing
-                            Log.d(TAG, "Is playing changed: $playing")
                         }
                         
                         override fun onPlayerError(error: PlaybackException) {
@@ -188,6 +184,7 @@ object MusicPlayerManager {
             player.prepare()
             
             Log.d(TAG, "Starting playback")
+            player.playWhenReady = true
             player.play()
             
             _currentSong.value = song
@@ -197,6 +194,7 @@ object MusicPlayerManager {
             Log.d(TAG, "Playback initiated successfully")
             Log.d(TAG, "Player state: ${player.playbackState}")
             Log.d(TAG, "Player isPlaying: ${player.isPlaying}")
+            Log.d(TAG, "Player playWhenReady: ${player.playWhenReady}")
             
         } catch (e: Exception) {
             Log.e(TAG, "EXCEPTION in playSong!", e)
@@ -211,22 +209,27 @@ object MusicPlayerManager {
             return
         }
         
-        Log.d(TAG, "Toggle Play/Pause")
+        Log.d(TAG, "========================================")
+        Log.d(TAG, "TOGGLE PLAY/PAUSE")
         Log.d(TAG, "Current isPlaying: ${player.isPlaying}")
+        Log.d(TAG, "Current playWhenReady: ${player.playWhenReady}")
+        Log.d(TAG, "========================================")
         
         if (player.isPlaying) {
-            Log.d(TAG, "Pausing")
+            Log.d(TAG, "Pausing playback")
+            player.playWhenReady = false
             player.pause()
-            _isPlaying.value = false
         } else {
-            Log.d(TAG, "Playing")
+            Log.d(TAG, "Resuming playback")
             if (requestAudioFocus(context)) {
+                player.playWhenReady = true
                 player.play()
-                _isPlaying.value = true
             } else {
                 Log.e(TAG, "Failed to gain audio focus")
             }
         }
+        
+        Log.d(TAG, "After toggle - isPlaying: ${player.isPlaying}, playWhenReady: ${player.playWhenReady}")
     }
     
     fun seekTo(context: Context, position: Long) {
