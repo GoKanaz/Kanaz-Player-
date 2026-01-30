@@ -23,6 +23,8 @@ class MusicPlaybackService : MediaSessionService() {
         
         createNotificationChannel()
         
+        startForeground(NOTIFICATION_ID, createNotification(false))
+        
         val player = MusicPlayerManager.getPlayer(this)
         
         val sessionActivityPendingIntent = PendingIntent.getActivity(
@@ -64,16 +66,14 @@ class MusicPlaybackService : MediaSessionService() {
     
     private fun updateNotification(isPlaying: Boolean) {
         val notification = createNotification(isPlaying)
-        if (isPlaying) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification,
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, notification)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
         }
     }
     
