@@ -1,5 +1,7 @@
 package com.gokanaz.kanazplayer
 
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,14 +11,24 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gokanaz.kanazplayer.service.MusicPlaybackService
 import com.gokanaz.kanazplayer.ui.library.SongListScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
+import com.gokanaz.kanazplayer.ui.queue.QueueScreen
 import com.gokanaz.kanazplayer.ui.theme.KanazPlayerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val serviceIntent = Intent(this, MusicPlaybackService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+        
         setContent {
             KanazPlayerTheme {
                 Surface(
@@ -30,30 +42,57 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+enum class Screen {
+    PLAYER, LIBRARY, QUEUE
+}
+
 @Composable
 fun MusicPlayerApp(
     viewModel: PlayerViewModel = viewModel()
 ) {
-    var showLibrary by remember { mutableStateOf(false) }
+    var currentScreen by remember { mutableStateOf(Screen.PLAYER) }
     val songs by viewModel.songs.collectAsState()
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val queue by viewModel.queue.collectAsState()
     
-    if (showLibrary) {
-        SongListScreen(
-            songs = songs,
-            currentSong = currentSong,
-            isPlaying = isPlaying,
-            onSongClick = { song ->
-                viewModel.playSong(song)
-                showLibrary = false
-            },
-            onBackClick = { showLibrary = false }
-        )
-    } else {
-        PlayerScreen(
-            viewModel = viewModel,
-            onLibraryClick = { showLibrary = true }
-        )
+    when (currentScreen) {
+        Screen.PLAYER -> {
+            PlayerScreen(
+                viewModel = viewModel,
+                onLibraryClick = { currentScreen = Screen.LIBRARY },
+                onQueueClick = { currentScreen = Screen.QUEUE }
+            )
+        }
+        Screen.LIBRARY -> {
+            SongListScreen(
+                songs = songs,
+                currentSong = currentSong,
+                isPlaying = isPlaying,
+                onSongClick = { song ->
+                    viewModel.playSong(song)
+                    currentScreen = Screen.PLAYER
+                },
+                onBackClick = { currentScreen = Screen.PLAYER }
+            )
+        }
+        Screen.QUEUE -> {
+            QueueScreen(
+                queue = queue,
+                currentSong = currentSong,
+                isPlaying = isPlaying,
+                onSongClick = { song ->
+                    viewModel.playSong(song)
+                    currentScreen = Screen.PLAYER
+                },
+                onRemoveFromQueue = { index ->
+                    viewModel.removeFromQueue(index)
+                },
+                onClearQueue = {
+                    viewModel.clearQueue()
+                },
+                onBackClick = { currentScreen = Screen.PLAYER }
+            )
+        }
     }
 }

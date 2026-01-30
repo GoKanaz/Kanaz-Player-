@@ -38,6 +38,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _albumArt = MutableStateFlow<Bitmap?>(null)
     val albumArt: StateFlow<Bitmap?> = _albumArt
     
+    private val _queue = MutableStateFlow<List<Song>>(emptyList())
+    val queue: StateFlow<List<Song>> = _queue
+    
     val isPlaying = playerService.isPlaying
     
     init {
@@ -78,6 +81,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             if (_songs.value.isNotEmpty() && _currentSong.value == null) {
                 _currentSong.value = _songs.value.first()
             }
+            updateQueue()
+        }
+    }
+    
+    private fun updateQueue() {
+        val currentIndex = _songs.value.indexOf(_currentSong.value)
+        if (currentIndex >= 0) {
+            _queue.value = _songs.value.drop(currentIndex)
         }
     }
     
@@ -85,6 +96,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         _currentSong.value = song
         playerService.playSong(song)
         loadAlbumArt(song)
+        updateQueue()
     }
     
     fun togglePlayPause() {
@@ -127,6 +139,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (prevIndex >= 0 && prevIndex < _songs.value.size) {
             playSong(_songs.value[prevIndex])
         }
+    }
+    
+    fun removeFromQueue(index: Int) {
+        val mutableQueue = _queue.value.toMutableList()
+        if (index in mutableQueue.indices) {
+            mutableQueue.removeAt(index)
+            _queue.value = mutableQueue
+        }
+    }
+    
+    fun clearQueue() {
+        _queue.value = listOf(_currentSong.value).filterNotNull()
     }
     
     fun toggleShuffle() {
