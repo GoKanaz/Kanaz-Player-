@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,7 @@ import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.service.MusicPlaybackService
 import com.gokanaz.kanazplayer.ui.home.HomeScreen
 import com.gokanaz.kanazplayer.ui.library.LibraryScreen
+import com.gokanaz.kanazplayer.ui.player.FullPlayerScreen
 import com.gokanaz.kanazplayer.ui.player.MiniPlayer
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 import com.gokanaz.kanazplayer.ui.theme.KanazPlayerTheme
@@ -103,6 +105,17 @@ fun MusicPlayerApp(
                     }
                 )
             }
+        }
+        
+        AnimatedVisibility(
+            visible = showFullPlayer,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it })
+        ) {
+            FullPlayerScreen(
+                viewModel = viewModel,
+                onCollapse = { showFullPlayer = false }
+            )
         }
     }
 }
