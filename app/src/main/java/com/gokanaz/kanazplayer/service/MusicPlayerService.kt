@@ -54,6 +54,10 @@ class MusicPlayerService(private val context: Context) {
         return mediaPlayer?.duration?.toLong() ?: 0L
     }
     
+    fun getAudioSessionId(): Int {
+        return mediaPlayer?.audioSessionId ?: 0
+    }
+    
     fun release() {
         mediaPlayer?.release()
         mediaPlayer = null

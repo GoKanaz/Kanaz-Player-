@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.service.MusicPlaybackService
+import com.gokanaz.kanazplayer.ui.equalizer.EqualizerScreen
 import com.gokanaz.kanazplayer.ui.library.SongListScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    PLAYER, LIBRARY, QUEUE, SETTINGS, PLAYLISTS
+    PLAYER, LIBRARY, QUEUE, SETTINGS, PLAYLISTS, EQUALIZER
 }
 
 @Composable
@@ -76,7 +77,8 @@ fun MusicPlayerApp(
                 onLibraryClick = { currentScreen = Screen.LIBRARY },
                 onQueueClick = { currentScreen = Screen.QUEUE },
                 onSettingsClick = { currentScreen = Screen.SETTINGS },
-                onPlaylistsClick = { currentScreen = Screen.PLAYLISTS }
+                onPlaylistsClick = { currentScreen = Screen.PLAYLISTS },
+                onEqualizerClick = { currentScreen = Screen.EQUALIZER }
             )
         }
         Screen.LIBRARY -> {
@@ -126,6 +128,12 @@ fun MusicPlayerApp(
                     viewModel.createPlaylist(name)
                 },
                 onBackClick = { currentScreen = Screen.PLAYER }
+            )
+        }
+        Screen.EQUALIZER -> {
+            EqualizerScreen(
+                onBackClick = { currentScreen = Screen.PLAYER },
+                viewModel = viewModel
             )
         }
     }

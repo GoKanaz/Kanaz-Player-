@@ -2,6 +2,8 @@ package com.gokanaz.kanazplayer.ui.player
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Virtualizer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gokanaz.kanazplayer.data.model.Playlist
@@ -21,6 +23,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val playlistRepository = PlaylistRepository(application)
     private val playerService = MusicPlayerService(application)
     private val context = application
+    
+    private var bassBoostEffect: BassBoost? = null
+    private var virtualizerEffect: Virtualizer? = null
     
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs
@@ -46,6 +51,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue
     
+    private val _equalizerEnabled = MutableStateFlow(false)
+    val equalizerEnabled: StateFlow<Boolean> = _equalizerEnabled
+    
+    private val _bassBoost = MutableStateFlow(0)
+    val bassBoost: StateFlow<Int> = _bassBoost
+    
+    private val _virtualizerStrength = MutableStateFlow(0)
+    val virtualizerStrength: StateFlow<Int> = _virtualizerStrength
+    
     val playlists: StateFlow<List<Playlist>> = playlistRepository.playlists
     
     val isPlaying: StateFlow<Boolean> = playerService.isPlaying
@@ -55,6 +69,37 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     init {
         startPositionUpdater()
         observeCurrentSong()
+        initializeAudioEffects()
+    }
+    
+    private fun initializeAudioEffects() {
+        try {
+            val audioSessionId = playerService.getAudioSessionId()
+            bassBoostEffect = BassBoost(0, audioSessionId).apply {
+                enabled = false
+            }
+            virtualizerEffect = Virtualizer(0, audioSessionId).apply {
+                enabled = false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    
+    fun setEqualizerEnabled(enabled: Boolean) {
+        _equalizerEnabled.value = enabled
+        bassBoostEffect?.enabled = enabled
+        virtualizerEffect?.enabled = enabled
+    }
+    
+    fun setBassBoost(strength: Int) {
+        _bassBoost.value = strength
+        bassBoostEffect?.setStrength(strength.toShort())
+    }
+    
+    fun setVirtualizerStrength(strength: Int) {
+        _virtualizerStrength.value = strength
+        virtualizerEffect?.setStrength(strength.toShort())
     }
     
     private fun observeCurrentSong() {
@@ -188,6 +233,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     override fun onCleared() {
         super.onCleared()
+        bassBoostEffect?.release()
+        virtualizerEffect?.release()
         playerService.release()
     }
 }
