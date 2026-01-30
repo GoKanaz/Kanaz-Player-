@@ -84,13 +84,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         
-        if (!isPlaying.value) {
-            Log.d(TAG, "Starting playback")
-            MusicPlayerManager.playSong(getApplication(), song)
-        } else {
-            Log.d(TAG, "Toggling pause")
-            MusicPlayerManager.togglePlayPause(getApplication())
-        }
+        MusicPlayerManager.togglePlayPause(getApplication())
     }
     
     fun seekTo(position: Long) {
