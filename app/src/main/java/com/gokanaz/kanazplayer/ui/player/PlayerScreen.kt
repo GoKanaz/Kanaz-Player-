@@ -32,7 +32,9 @@ import com.gokanaz.kanazplayer.ui.sleep.SleepTimerDialog
 fun PlayerScreen(
     viewModel: PlayerViewModel = viewModel(),
     onLibraryClick: () -> Unit = {},
-    onQueueClick: () -> Unit = {}
+    onQueueClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onPlaylistsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentSong by viewModel.currentSong.collectAsState()
@@ -47,6 +49,7 @@ fun PlayerScreen(
     val sleepTimerRemaining by viewModel.sleepTimerRemaining.collectAsState()
     
     var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
     
     var hasPermission by remember {
         mutableStateOf(
@@ -151,6 +154,50 @@ fun PlayerScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Now Playing") },
+                navigationIcon = {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                    
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Library") },
+                            onClick = {
+                                showMenu = false
+                                onLibraryClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.LibraryMusic, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Playlists") },
+                            onClick = {
+                                showMenu = false
+                                onPlaylistsClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.PlaylistPlay, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Queue") },
+                            onClick = {
+                                showMenu = false
+                                onQueueClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.QueueMusic, null) }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            onClick = {
+                                showMenu = false
+                                onSettingsClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Settings, null) }
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { showSleepTimerDialog = true }) {
                         Icon(
@@ -159,19 +206,10 @@ fun PlayerScreen(
                             tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    IconButton(onClick = onQueueClick) {
-                        Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
-                    }
-                    IconButton(onClick = onLibraryClick) {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ) {
-                            Text("${songs.size}")
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = onLibraryClick) {
-                        Icon(Icons.Default.LibraryMusic, contentDescription = "Library")
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Text("${songs.size}")
                     }
                 }
             )

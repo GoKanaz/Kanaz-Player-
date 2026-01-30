@@ -4,8 +4,10 @@ import android.app.Application
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.gokanaz.kanazplayer.data.model.Playlist
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.data.repository.MusicRepository
+import com.gokanaz.kanazplayer.data.repository.PlaylistRepository
 import com.gokanaz.kanazplayer.service.MusicPlayerManager
 import com.gokanaz.kanazplayer.service.MusicPlayerService
 import com.gokanaz.kanazplayer.service.SleepTimerManager
@@ -16,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MusicRepository(application)
+    private val playlistRepository = PlaylistRepository(application)
     private val playerService = MusicPlayerService(application)
     private val context = application
     
@@ -42,6 +45,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue
+    
+    val playlists = playlistRepository.playlists
     
     val isPlaying = playerService.isPlaying
     val sleepTimerActive = SleepTimerManager.isActive
@@ -171,6 +176,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun cancelSleepTimer() {
         SleepTimerManager.cancelTimer()
+    }
+    
+    fun createPlaylist(name: String) {
+        playlistRepository.createPlaylist(name)
+    }
+    
+    fun addSongToPlaylist(playlistId: Long, songId: Long) {
+        playlistRepository.addSongToPlaylist(playlistId, songId)
     }
     
     override fun onCleared() {

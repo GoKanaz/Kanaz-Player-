@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -15,7 +16,9 @@ import com.gokanaz.kanazplayer.service.MusicPlaybackService
 import com.gokanaz.kanazplayer.ui.library.SongListScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
+import com.gokanaz.kanazplayer.ui.playlist.PlaylistScreen
 import com.gokanaz.kanazplayer.ui.queue.QueueScreen
+import com.gokanaz.kanazplayer.ui.settings.SettingsScreen
 import com.gokanaz.kanazplayer.ui.theme.KanazPlayerTheme
 
 class MainActivity : ComponentActivity() {
@@ -30,12 +33,17 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            KanazPlayerTheme {
+            var isDarkTheme by remember { mutableStateOf(isSystemInDarkTheme()) }
+            
+            KanazPlayerTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MusicPlayerApp()
+                    MusicPlayerApp(
+                        isDarkTheme = isDarkTheme,
+                        onThemeChange = { isDarkTheme = it }
+                    )
                 }
             }
         }
@@ -43,25 +51,30 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    PLAYER, LIBRARY, QUEUE
+    PLAYER, LIBRARY, QUEUE, SETTINGS, PLAYLISTS
 }
 
 @Composable
 fun MusicPlayerApp(
-    viewModel: PlayerViewModel = viewModel()
+    viewModel: PlayerViewModel = viewModel(),
+    isDarkTheme: Boolean,
+    onThemeChange: (Boolean) -> Unit
 ) {
     var currentScreen by remember { mutableStateOf(Screen.PLAYER) }
     val songs by viewModel.songs.collectAsState()
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val queue by viewModel.queue.collectAsState()
+    val playlists by viewModel.playlists.collectAsState()
     
     when (currentScreen) {
         Screen.PLAYER -> {
             PlayerScreen(
                 viewModel = viewModel,
                 onLibraryClick = { currentScreen = Screen.LIBRARY },
-                onQueueClick = { currentScreen = Screen.QUEUE }
+                onQueueClick = { currentScreen = Screen.QUEUE },
+                onSettingsClick = { currentScreen = Screen.SETTINGS },
+                onPlaylistsClick = { currentScreen = Screen.PLAYLISTS }
             )
         }
         Screen.LIBRARY -> {
@@ -90,6 +103,25 @@ fun MusicPlayerApp(
                 },
                 onClearQueue = {
                     viewModel.clearQueue()
+                },
+                onBackClick = { currentScreen = Screen.PLAYER }
+            )
+        }
+        Screen.SETTINGS -> {
+            SettingsScreen(
+                isDarkTheme = isDarkTheme,
+                onThemeChange = onThemeChange,
+                onBackClick = { currentScreen = Screen.PLAYER }
+            )
+        }
+        Screen.PLAYLISTS -> {
+            PlaylistScreen(
+                playlists = playlists,
+                onPlaylistClick = { playlist ->
+                    currentScreen = Screen.PLAYER
+                },
+                onCreatePlaylist = { name ->
+                    viewModel.createPlaylist(name)
                 },
                 onBackClick = { currentScreen = Screen.PLAYER }
             )
