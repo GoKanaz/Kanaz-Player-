@@ -37,6 +37,7 @@ object MusicPlayerManager {
     val currentSong: StateFlow<Song?> = _currentSong
     
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        Log.d(TAG, "Audio focus changed: $focusChange")
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 exoPlayer?.volume = 1.0f
@@ -59,7 +60,7 @@ object MusicPlayerManager {
     
     fun getPlayer(context: Context): ExoPlayer {
         if (exoPlayer == null) {
-            Log.d(TAG, "Initializing ExoPlayer")
+            Log.d(TAG, "Creating new ExoPlayer instance")
             audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             
             val audioAttributes = Media3AudioAttributes.Builder()
@@ -74,19 +75,21 @@ object MusicPlayerManager {
                 .build().apply {
                     addListener(object : Player.Listener {
                         override fun onPlaybackStateChanged(playbackState: Int) {
+                            val stateName = when (playbackState) {
+                                Player.STATE_IDLE -> "IDLE"
+                                Player.STATE_BUFFERING -> "BUFFERING"
+                                Player.STATE_READY -> "READY"
+                                Player.STATE_ENDED -> "ENDED"
+                                else -> "UNKNOWN"
+                            }
+                            Log.d(TAG, "Playback state: $stateName")
+                            
                             when (playbackState) {
-                                Player.STATE_IDLE -> {
-                                    Log.d(TAG, "State: IDLE")
-                                }
-                                Player.STATE_BUFFERING -> {
-                                    Log.d(TAG, "State: BUFFERING")
-                                }
                                 Player.STATE_READY -> {
-                                    Log.d(TAG, "State: READY - Duration: ${duration}ms")
                                     _duration.value = duration
+                                    Log.d(TAG, "Duration set: ${duration}ms")
                                 }
                                 Player.STATE_ENDED -> {
-                                    Log.d(TAG, "State: ENDED")
                                     _isPlaying.value = false
                                 }
                             }
@@ -94,19 +97,21 @@ object MusicPlayerManager {
                         
                         override fun onIsPlayingChanged(playing: Boolean) {
                             _isPlaying.value = playing
-                            Log.d(TAG, "Is Playing: $playing")
+                            Log.d(TAG, "Is playing changed: $playing")
                         }
                         
                         override fun onPlayerError(error: PlaybackException) {
-                            Log.e(TAG, "Player Error: ${error.errorCodeName}")
-                            Log.e(TAG, "Error Message: ${error.message}")
-                            Log.e(TAG, "Cause: ${error.cause?.message}")
+                            Log.e(TAG, "Player error: ${error.errorCodeName}")
+                            Log.e(TAG, "Error message: ${error.message}")
+                            error.cause?.let {
+                                Log.e(TAG, "Cause: ${it.message}")
+                            }
                             _isPlaying.value = false
                         }
                     })
                 }
             
-            Log.d(TAG, "ExoPlayer initialized successfully")
+            Log.d(TAG, "ExoPlayer created successfully")
         }
         return exoPlayer!!
     }
@@ -126,8 +131,9 @@ object MusicPlayerManager {
                 .build()
             
             val result = audioManager?.requestAudioFocus(audioFocusRequest!!)
-            Log.d(TAG, "Audio Focus Request: $result")
-            result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            val granted = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            Log.d(TAG, "Audio focus request result: $granted")
+            granted
         } else {
             @Suppress("DEPRECATION")
             val result = audioManager?.requestAudioFocus(
@@ -135,8 +141,9 @@ object MusicPlayerManager {
                 AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN
             )
-            Log.d(TAG, "Audio Focus Request (legacy): $result")
-            result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            val granted = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            Log.d(TAG, "Audio focus request result (legacy): $granted")
+            granted
         }
     }
     
@@ -144,21 +151,20 @@ object MusicPlayerManager {
         Log.d(TAG, "========================================")
         Log.d(TAG, "PLAY SONG REQUESTED")
         Log.d(TAG, "Title: ${song.title}")
-        Log.d(TAG, "Artist: ${song.artist}")
         Log.d(TAG, "Path: ${song.path}")
-        Log.d(TAG, "Duration from Song: ${song.duration}ms")
         Log.d(TAG, "========================================")
         
-        if (!requestAudioFocus(context)) {
-            Log.e(TAG, "Failed to gain audio focus")
-            return
-        }
-        
         try {
+            if (!requestAudioFocus(context)) {
+                Log.e(TAG, "Failed to gain audio focus!")
+                return
+            }
+            
             val player = getPlayer(context)
+            Log.d(TAG, "Player instance obtained")
             
             val uri = Uri.parse(song.path)
-            Log.d(TAG, "Parsed URI: $uri")
+            Log.d(TAG, "URI created: $uri")
             
             val mediaMetadata = MediaMetadata.Builder()
                 .setTitle(song.title)
@@ -171,16 +177,17 @@ object MusicPlayerManager {
                 .setMediaMetadata(mediaMetadata)
                 .build()
             
+            Log.d(TAG, "Stopping previous playback")
             player.stop()
             player.clearMediaItems()
             
-            Log.d(TAG, "Setting media item...")
+            Log.d(TAG, "Setting new media item")
             player.setMediaItem(mediaItem)
             
-            Log.d(TAG, "Preparing player...")
+            Log.d(TAG, "Preparing player")
             player.prepare()
             
-            Log.d(TAG, "Starting playback...")
+            Log.d(TAG, "Starting playback")
             player.play()
             
             _currentSong.value = song
@@ -188,9 +195,11 @@ object MusicPlayerManager {
             _currentPosition.value = 0L
             
             Log.d(TAG, "Playback initiated successfully")
+            Log.d(TAG, "Player state: ${player.playbackState}")
+            Log.d(TAG, "Player isPlaying: ${player.isPlaying}")
             
         } catch (e: Exception) {
-            Log.e(TAG, "Exception in playSong", e)
+            Log.e(TAG, "EXCEPTION in playSong!", e)
             e.printStackTrace()
         }
     }
@@ -198,21 +207,24 @@ object MusicPlayerManager {
     fun togglePlayPause(context: Context) {
         val player = exoPlayer
         if (player == null) {
-            Log.w(TAG, "togglePlayPause: Player is null")
+            Log.e(TAG, "togglePlayPause: Player is NULL!")
             return
         }
         
-        Log.d(TAG, "Toggle Play/Pause - Current state: ${player.isPlaying}")
+        Log.d(TAG, "Toggle Play/Pause")
+        Log.d(TAG, "Current isPlaying: ${player.isPlaying}")
         
         if (player.isPlaying) {
+            Log.d(TAG, "Pausing")
             player.pause()
             _isPlaying.value = false
-            Log.d(TAG, "Paused")
         } else {
+            Log.d(TAG, "Playing")
             if (requestAudioFocus(context)) {
                 player.play()
                 _isPlaying.value = true
-                Log.d(TAG, "Playing")
+            } else {
+                Log.e(TAG, "Failed to gain audio focus")
             }
         }
     }
