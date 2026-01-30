@@ -1,6 +1,5 @@
 package com.gokanaz.kanazplayer.ui.player
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -39,15 +38,16 @@ fun MiniPlayer(
                 imageVector = Icons.Default.MusicNote,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(48.dp)
-                    .padding(8.dp),
+                    .size(40.dp)
+                    .padding(4.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = song.title,
@@ -64,17 +64,25 @@ fun MiniPlayer(
                 )
             }
             
-            IconButton(onClick = onPlayPauseClick) {
+            IconButton(
+                onClick = onPlayPauseClick,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play"
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    modifier = Modifier.size(32.dp)
                 )
             }
             
-            IconButton(onClick = onNextClick) {
+            IconButton(
+                onClick = onNextClick,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next"
+                    contentDescription = "Next",
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }

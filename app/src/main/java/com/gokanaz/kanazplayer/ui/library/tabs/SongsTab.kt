@@ -53,7 +53,12 @@ fun SongsTab(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedButton(
-                onClick = { },
+                onClick = { 
+                    viewModel.toggleShuffle()
+                    if (songs.isNotEmpty()) {
+                        onSongClick(songs.random())
+                    }
+                },
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -61,7 +66,11 @@ fun SongsTab(
                 Text("Acak")
             }
             OutlinedButton(
-                onClick = { },
+                onClick = { 
+                    if (songs.isNotEmpty()) {
+                        onSongClick(songs.first())
+                    }
+                },
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -80,6 +89,10 @@ fun SongsTab(
                     isPlaying = isPlaying && song == currentSong,
                     onClick = { onSongClick(song) }
                 )
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
@@ -111,7 +124,7 @@ fun SongListItem(
         },
         leadingContent = {
             Icon(
-                imageVector = Icons.Default.MusicNote,
+                imageVector = if (isCurrentSong && isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
                 contentDescription = null,
                 tint = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )

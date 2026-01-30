@@ -70,6 +70,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         startPositionUpdater()
         observeCurrentSong()
         initializeAudioEffects()
+        setupCompletionListener()
+    }
+    
+    private fun setupCompletionListener() {
+        playerService.setOnCompletionListener {
+            playNext()
+        }
     }
     
     private fun initializeAudioEffects() {
@@ -154,12 +161,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun togglePlayPause() {
-        _currentSong.value?.let { song ->
-            if (!isPlaying.value && playerService.getCurrentPosition() == 0L) {
-                playerService.playSong(song)
-            } else {
-                playerService.togglePlayPause()
-            }
+        if (_currentSong.value == null && _songs.value.isNotEmpty()) {
+            playSong(_songs.value.first())
+        } else {
+            playerService.togglePlayPause()
         }
     }
     
@@ -169,6 +174,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playNext() {
+        if (_songs.value.isEmpty()) return
+        
         if (_isRepeatEnabled.value) {
             _currentSong.value?.let { playSong(it) }
             return
@@ -187,6 +194,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playPrevious() {
+        if (_songs.value.isEmpty()) return
+        
         val currentIndex = _songs.value.indexOf(_currentSong.value)
         val prevIndex = if (currentIndex > 0) currentIndex - 1 else _songs.value.size - 1
         

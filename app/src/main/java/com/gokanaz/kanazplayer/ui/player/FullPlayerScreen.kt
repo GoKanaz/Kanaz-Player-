@@ -14,7 +14,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -92,9 +91,11 @@ fun FullPlayerScreen(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = currentSong?.title ?: "No Song",
                         style = MaterialTheme.typography.headlineSmall,
@@ -111,6 +112,8 @@ fun FullPlayerScreen(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                
+                Spacer(modifier = Modifier.width(8.dp))
                 
                 IconButton(onClick = { }) {
                     Icon(
@@ -151,7 +154,7 @@ fun FullPlayerScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -181,23 +184,15 @@ fun FullPlayerScreen(
                     )
                 }
                 
-                Surface(
-                    modifier = Modifier.size(72.dp),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = { viewModel.togglePlayPause() }
+                FilledIconButton(
+                    onClick = { viewModel.togglePlayPause() },
+                    modifier = Modifier.size(72.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(40.dp)
+                    )
                 }
                 
                 IconButton(
@@ -224,7 +219,7 @@ fun FullPlayerScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),

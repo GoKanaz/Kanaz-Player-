@@ -8,9 +8,14 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MusicPlayerService(private val context: Context) {
     private var mediaPlayer: MediaPlayer? = null
+    private var onCompletionListener: (() -> Unit)? = null
     
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
+    
+    fun setOnCompletionListener(listener: () -> Unit) {
+        onCompletionListener = listener
+    }
     
     fun playSong(song: Song) {
         try {
@@ -21,6 +26,7 @@ class MusicPlayerService(private val context: Context) {
                 start()
                 setOnCompletionListener {
                     _isPlaying.value = false
+                    onCompletionListener?.invoke()
                 }
             }
             _isPlaying.value = true
@@ -32,35 +38,62 @@ class MusicPlayerService(private val context: Context) {
     
     fun togglePlayPause() {
         mediaPlayer?.let {
-            if (it.isPlaying) {
-                it.pause()
+            try {
+                if (it.isPlaying) {
+                    it.pause()
+                    _isPlaying.value = false
+                } else {
+                    it.start()
+                    _isPlaying.value = true
+                }
+            } catch (e: IllegalStateException) {
+                e.printStackTrace()
                 _isPlaying.value = false
-            } else {
-                it.start()
-                _isPlaying.value = true
             }
         }
     }
     
     fun seekTo(position: Long) {
-        mediaPlayer?.seekTo(position.toInt())
+        mediaPlayer?.let {
+            try {
+                it.seekTo(position.toInt())
+            } catch (e: IllegalStateException) {
+                e.printStackTrace()
+            }
+        }
     }
     
     fun getCurrentPosition(): Long {
-        return mediaPlayer?.currentPosition?.toLong() ?: 0L
+        return try {
+            mediaPlayer?.currentPosition?.toLong() ?: 0L
+        } catch (e: IllegalStateException) {
+            0L
+        }
     }
     
     fun getDuration(): Long {
-        return mediaPlayer?.duration?.toLong() ?: 0L
+        return try {
+            mediaPlayer?.duration?.toLong() ?: 0L
+        } catch (e: IllegalStateException) {
+            0L
+        }
     }
     
     fun getAudioSessionId(): Int {
-        return mediaPlayer?.audioSessionId ?: 0
+        return try {
+            mediaPlayer?.audioSessionId ?: 0
+        } catch (e: IllegalStateException) {
+            0
+        }
     }
     
     fun release() {
-        mediaPlayer?.release()
-        mediaPlayer = null
-        _isPlaying.value = false
+        try {
+            mediaPlayer?.release()
+            mediaPlayer = null
+            _isPlaying.value = false
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
