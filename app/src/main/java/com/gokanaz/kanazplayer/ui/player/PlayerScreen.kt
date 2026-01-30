@@ -2,10 +2,11 @@ package com.gokanaz.kanazplayer.ui.player
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Build
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -24,13 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-private const val TAG = "PlayerScreen"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel = viewModel(),
-    onLibraryClick: () -> Unit = {}
+    onLibraryClick: () -> Unit = {},
+    onQueueClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentSong by viewModel.currentSong.collectAsState()
@@ -40,6 +42,7 @@ fun PlayerScreen(
     val songs by viewModel.songs.collectAsState()
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val isRepeatEnabled by viewModel.isRepeatEnabled.collectAsState()
+    val albumArt by viewModel.albumArt.collectAsState()
     
     var hasPermission by remember {
         mutableStateOf(
@@ -129,6 +132,9 @@ fun PlayerScreen(
             TopAppBar(
                 title = { Text("Now Playing") },
                 actions = {
+                    IconButton(onClick = onQueueClick) {
+                        Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
+                    }
                     IconButton(onClick = onLibraryClick) {
                         Badge(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -161,22 +167,28 @@ fun PlayerScreen(
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(100.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                if (albumArt != null) {
+                    Image(
+                        bitmap = albumArt!!.asImageBitmap(),
+                        contentDescription = "Album Art",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = currentSong?.title ?: "No Song",
@@ -227,13 +239,9 @@ fun PlayerScreen(
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                IconButton(onClick = { 
-                    Log.d(TAG, "Shuffle button clicked")
-                    viewModel.toggleShuffle() 
-                }) {
+                IconButton(onClick = { viewModel.toggleShuffle() }) {
                     Icon(
                         Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
@@ -244,10 +252,7 @@ fun PlayerScreen(
                         }
                     )
                 }
-                IconButton(onClick = { 
-                    Log.d(TAG, "Repeat button clicked")
-                    viewModel.toggleRepeat() 
-                }) {
+                IconButton(onClick = { viewModel.toggleRepeat() }) {
                     Icon(
                         Icons.Default.Repeat,
                         contentDescription = "Repeat",
@@ -258,10 +263,7 @@ fun PlayerScreen(
                         }
                     )
                 }
-                IconButton(onClick = {
-                    Log.d(TAG, "Queue button clicked")
-                    onLibraryClick()
-                }) {
+                IconButton(onClick = onQueueClick) {
                     Icon(
                         Icons.Default.QueueMusic,
                         contentDescription = "Queue",
@@ -272,69 +274,52 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(80.dp),
-                contentAlignment = Alignment.Center
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    modifier = Modifier.size(56.dp)
                 ) {
-                    IconButton(
-                        onClick = { 
-                            Log.d(TAG, "=== PREVIOUS BUTTON CLICKED ===")
-                            viewModel.playPrevious() 
-                        },
-                        modifier = Modifier.size(56.dp)
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                
+                Surface(
+                    modifier = Modifier.size(72.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = { viewModel.togglePlayPause() }
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.SkipPrevious,
-                            contentDescription = "Previous",
-                            modifier = Modifier.size(36.dp)
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                    
-                    Surface(
-                        modifier = Modifier.size(72.dp),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        onClick = { 
-                            Log.d(TAG, "=== PLAY/PAUSE BUTTON CLICKED ===")
-                            Log.d(TAG, "Current song: ${currentSong?.title}")
-                            Log.d(TAG, "Is playing: $isPlaying")
-                            Log.d(TAG, "Songs count: ${songs.size}")
-                            viewModel.togglePlayPause()
-                        }
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                modifier = Modifier.size(40.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-                    
-                    IconButton(
-                        onClick = { 
-                            Log.d(TAG, "=== NEXT BUTTON CLICKED ===")
-                            viewModel.playNext() 
-                        },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SkipNext,
-                            contentDescription = "Next",
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
+                }
+                
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
             }
             

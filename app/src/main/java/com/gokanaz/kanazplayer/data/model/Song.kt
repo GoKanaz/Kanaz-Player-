@@ -1,5 +1,7 @@
 package com.gokanaz.kanazplayer.data.model
 
+import android.graphics.Bitmap
+
 data class Song(
     val id: Long,
     val title: String,
@@ -7,5 +9,6 @@ data class Song(
     val album: String,
     val duration: Long,
     val path: String,
-    val albumArt: String? = null
+    val albumArtUri: String? = null,
+    var albumArtBitmap: Bitmap? = null
 )

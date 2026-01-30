@@ -1,20 +1,21 @@
 package com.gokanaz.kanazplayer.ui.player
 
 import android.app.Application
-import android.util.Log
+import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.data.repository.MusicRepository
 import com.gokanaz.kanazplayer.service.MusicPlayerManager
+import com.gokanaz.kanazplayer.service.MusicPlayerService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
-    private val TAG = "PlayerViewModel"
     private val repository = MusicRepository(application)
+    private val playerService = MusicPlayerService(application)
     
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs
@@ -34,18 +35,37 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _isRepeatEnabled = MutableStateFlow(false)
     val isRepeatEnabled: StateFlow<Boolean> = _isRepeatEnabled
     
-    val isPlaying = MusicPlayerManager.isPlaying
+    private val _albumArt = MutableStateFlow<Bitmap?>(null)
+    val albumArt: StateFlow<Bitmap?> = _albumArt
+    
+    val isPlaying = playerService.isPlaying
     
     init {
         startPositionUpdater()
+        observeCurrentSong()
+    }
+    
+    private fun observeCurrentSong() {
+        viewModelScope.launch {
+            MusicPlayerManager.currentSong.collect { song ->
+                _currentSong.value = song
+                song?.let { loadAlbumArt(it) }
+            }
+        }
+    }
+    
+    private fun loadAlbumArt(song: Song) {
+        viewModelScope.launch {
+            _albumArt.value = repository.getAlbumArt(song)
+        }
     }
     
     private fun startPositionUpdater() {
         viewModelScope.launch {
             while (true) {
                 if (isPlaying.value) {
-                    _currentPosition.value = MusicPlayerManager.getCurrentPosition(getApplication())
-                    _duration.value = MusicPlayerManager.getDuration(getApplication())
+                    _currentPosition.value = playerService.getCurrentPosition()
+                    _duration.value = playerService.getDuration()
                 }
                 delay(100)
             }
@@ -55,98 +75,54 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun loadSongs() {
         viewModelScope.launch {
             _songs.value = repository.getAllSongs()
-            Log.d(TAG, "Loaded ${_songs.value.size} songs")
             if (_songs.value.isNotEmpty() && _currentSong.value == null) {
                 _currentSong.value = _songs.value.first()
-                Log.d(TAG, "Set current song to: ${_currentSong.value?.title}")
             }
         }
     }
     
     fun playSong(song: Song) {
-        Log.d(TAG, "=== PLAY SONG CALLED ===")
-        Log.d(TAG, "Song: ${song.title}")
         _currentSong.value = song
-        MusicPlayerManager.playSong(getApplication(), song)
+        playerService.playSong(song)
+        loadAlbumArt(song)
     }
     
     fun togglePlayPause() {
-        val song = _currentSong.value
-        Log.d(TAG, "=== TOGGLE PLAY/PAUSE CALLED ===")
-        Log.d(TAG, "Current song: ${song?.title}")
-        Log.d(TAG, "Is playing: ${isPlaying.value}")
-        
-        if (song == null) {
-            Log.w(TAG, "No song selected, loading first song")
-            if (_songs.value.isNotEmpty()) {
-                playSong(_songs.value.first())
+        _currentSong.value?.let { song ->
+            if (!isPlaying.value && playerService.getCurrentPosition() == 0L) {
+                playerService.playSong(song)
+            } else {
+                playerService.togglePlayPause()
             }
-            return
         }
-        
-        MusicPlayerManager.togglePlayPause(getApplication())
     }
     
     fun seekTo(position: Long) {
-        MusicPlayerManager.seekTo(getApplication(), position)
+        playerService.seekTo(position)
         _currentPosition.value = position
     }
     
     fun playNext() {
-        if (_songs.value.isEmpty()) {
-            Log.w(TAG, "No songs available")
-            return
-        }
-        
-        val currentIndex = _songs.value.indexOf(_currentSong.value)
-        
         if (_isRepeatEnabled.value) {
             _currentSong.value?.let { playSong(it) }
             return
         }
         
+        val currentIndex = _songs.value.indexOf(_currentSong.value)
         val nextIndex = if (_isShuffleEnabled.value) {
-            val availableIndices = _songs.value.indices.filter { it != currentIndex }
-            if (availableIndices.isNotEmpty()) {
-                availableIndices.random()
-            } else {
-                currentIndex
-            }
+            (0 until _songs.value.size).filter { it != currentIndex }.randomOrNull() ?: 0
         } else {
-            if (currentIndex >= 0 && currentIndex < _songs.value.size - 1) {
-                currentIndex + 1
-            } else {
-                0
-            }
+            if (currentIndex < _songs.value.size - 1) currentIndex + 1 else 0
         }
         
-        if (nextIndex >= 0 && nextIndex < _songs.value.size) {
+        if (nextIndex < _songs.value.size) {
             playSong(_songs.value[nextIndex])
         }
     }
     
     fun playPrevious() {
-        if (_songs.value.isEmpty()) {
-            Log.w(TAG, "No songs available")
-            return
-        }
-        
         val currentIndex = _songs.value.indexOf(_currentSong.value)
-        
-        val prevIndex = if (_isShuffleEnabled.value) {
-            val availableIndices = _songs.value.indices.filter { it != currentIndex }
-            if (availableIndices.isNotEmpty()) {
-                availableIndices.random()
-            } else {
-                currentIndex
-            }
-        } else {
-            if (currentIndex > 0) {
-                currentIndex - 1
-            } else {
-                _songs.value.size - 1
-            }
-        }
+        val prevIndex = if (currentIndex > 0) currentIndex - 1 else _songs.value.size - 1
         
         if (prevIndex >= 0 && prevIndex < _songs.value.size) {
             playSong(_songs.value[prevIndex])
@@ -155,16 +131,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun toggleShuffle() {
         _isShuffleEnabled.value = !_isShuffleEnabled.value
-        Log.d(TAG, "Shuffle: ${_isShuffleEnabled.value}")
     }
     
     fun toggleRepeat() {
         _isRepeatEnabled.value = !_isRepeatEnabled.value
-        Log.d(TAG, "Repeat: ${_isRepeatEnabled.value}")
     }
     
     override fun onCleared() {
         super.onCleared()
-        MusicPlayerManager.release()
+        playerService.release()
     }
 }
