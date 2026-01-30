@@ -12,23 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
-data class MusicFolder(
-    val name: String,
-    val path: String,
-    val songCount: Int
-)
+import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @Composable
-fun FoldersTab() {
-    val folders = remember {
-        listOf(
-            MusicFolder("Music", "/storage/emulated/0/Music", 36),
-            MusicFolder("NewPipe", "/storage/emulated/0/NewPipe", 31),
-            MusicFolder("Audio", "/storage/emulated/0/Audio", 5),
-            MusicFolder("Download", "/storage/emulated/0/Download", 12)
-        )
-    }
+fun FoldersTab(
+    viewModel: PlayerViewModel,
+    onFolderClick: (com.gokanaz.kanazplayer.data.repository.MusicFolder) -> Unit = {}
+) {
+    val folders by viewModel.folders.collectAsState()
     
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -71,11 +62,15 @@ fun FoldersTab() {
                         )
                     },
                     trailingContent = {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
+                        IconButton(onClick = { 
+                            if (folder.songs.isNotEmpty()) {
+                                viewModel.playSongs(folder.songs)
+                            }
+                        }) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play All")
                         }
                     },
-                    modifier = Modifier.clickable { }
+                    modifier = Modifier.clickable { onFolderClick(folder) }
                 )
             }
             

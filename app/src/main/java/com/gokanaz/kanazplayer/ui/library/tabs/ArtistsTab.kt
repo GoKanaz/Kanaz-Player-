@@ -17,26 +17,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
-data class Artist(
-    val name: String,
-    val albumCount: Int,
-    val songCount: Int
-)
-
 @Composable
-fun ArtistsTab(viewModel: PlayerViewModel) {
-    val songs by viewModel.songs.collectAsState()
-    
-    val artists = remember(songs) {
-        songs.groupBy { it.artist }
-            .map { (artist, songList) ->
-                Artist(
-                    name = artist,
-                    albumCount = songList.map { it.album }.distinct().size,
-                    songCount = songList.size
-                )
-            }
-    }
+fun ArtistsTab(
+    viewModel: PlayerViewModel,
+    onArtistClick: (com.gokanaz.kanazplayer.data.repository.Artist) -> Unit = {}
+) {
+    val artists by viewModel.artists.collectAsState()
     
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -86,11 +72,15 @@ fun ArtistsTab(viewModel: PlayerViewModel) {
                         }
                     },
                     trailingContent = {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
+                        IconButton(onClick = { 
+                            if (artist.songs.isNotEmpty()) {
+                                viewModel.playSongs(artist.songs)
+                            }
+                        }) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play All")
                         }
                     },
-                    modifier = Modifier.clickable { }
+                    modifier = Modifier.clickable { onArtistClick(artist) }
                 )
             }
             

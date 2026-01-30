@@ -194,9 +194,12 @@ fun HomeScreen(
         }
         
         when (selectedTab) {
-            LibraryTab.SONGS -> SongsTab(viewModel = viewModel, onSongClick = { viewModel.playSong(it) })
+            LibraryTab.SONGS -> SongsTab(
+                viewModel = viewModel, 
+                onSongClick = { viewModel.playSong(it) }
+            )
             LibraryTab.PLAYLISTS -> PlaylistsTab(viewModel = viewModel)
-            LibraryTab.FOLDERS -> FoldersTab()
+            LibraryTab.FOLDERS -> FoldersTab(viewModel = viewModel)
             LibraryTab.ALBUMS -> AlbumsTab(viewModel = viewModel)
             LibraryTab.ARTISTS -> ArtistsTab(viewModel = viewModel)
             LibraryTab.GENRES -> GenresTab(viewModel = viewModel)

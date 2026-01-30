@@ -16,26 +16,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
-data class Album(
-    val name: String,
-    val artist: String,
-    val songCount: Int
-)
-
 @Composable
-fun AlbumsTab(viewModel: PlayerViewModel) {
-    val songs by viewModel.songs.collectAsState()
-    
-    val albums = remember(songs) {
-        songs.groupBy { it.album }
-            .map { (album, songList) ->
-                Album(
-                    name = album,
-                    artist = songList.firstOrNull()?.artist ?: "Unknown",
-                    songCount = songList.size
-                )
-            }
-    }
+fun AlbumsTab(
+    viewModel: PlayerViewModel,
+    onAlbumClick: (com.gokanaz.kanazplayer.data.repository.Album) -> Unit = {}
+) {
+    val albums by viewModel.albums.collectAsState()
     
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -68,7 +54,12 @@ fun AlbumsTab(viewModel: PlayerViewModel) {
             items(albums) { album ->
                 AlbumGridItem(
                     album = album,
-                    onClick = { }
+                    onClick = { onAlbumClick(album) },
+                    onPlayClick = {
+                        if (album.songs.isNotEmpty()) {
+                            viewModel.playSongs(album.songs)
+                        }
+                    }
                 )
             }
             
@@ -81,8 +72,9 @@ fun AlbumsTab(viewModel: PlayerViewModel) {
 
 @Composable
 fun AlbumGridItem(
-    album: Album,
-    onClick: () -> Unit
+    album: com.gokanaz.kanazplayer.data.repository.Album,
+    onClick: () -> Unit,
+    onPlayClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -92,22 +84,41 @@ fun AlbumGridItem(
         Column(
             modifier = Modifier.padding(12.dp)
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            Box {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Album,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                
+                FilledIconButton(
+                    onClick = onPlayClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(36.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Album,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Play",
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

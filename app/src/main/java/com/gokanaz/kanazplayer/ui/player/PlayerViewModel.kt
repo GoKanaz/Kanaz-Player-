@@ -8,8 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gokanaz.kanazplayer.data.model.Playlist
 import com.gokanaz.kanazplayer.data.model.Song
-import com.gokanaz.kanazplayer.data.repository.MusicRepository
-import com.gokanaz.kanazplayer.data.repository.PlaylistRepository
+import com.gokanaz.kanazplayer.data.repository.*
 import com.gokanaz.kanazplayer.service.MusicPlayerManager
 import com.gokanaz.kanazplayer.service.MusicPlayerService
 import com.gokanaz.kanazplayer.service.SleepTimerManager
@@ -21,6 +20,7 @@ import kotlinx.coroutines.launch
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MusicRepository(application)
     private val playlistRepository = PlaylistRepository(application)
+    private val libraryRepository = LibraryRepository(application)
     private val playerService = MusicPlayerService(application)
     private val context = application
     
@@ -61,6 +61,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val virtualizerStrength: StateFlow<Int> = _virtualizerStrength
     
     val playlists: StateFlow<List<Playlist>> = playlistRepository.playlists
+    val folders: StateFlow<List<MusicFolder>> = libraryRepository.folders
+    val albums: StateFlow<List<Album>> = libraryRepository.albums
+    val artists: StateFlow<List<Artist>> = libraryRepository.artists
+    val genres: StateFlow<List<Genre>> = libraryRepository.genres
     
     val isPlaying: StateFlow<Boolean> = playerService.isPlaying
     val sleepTimerActive: StateFlow<Boolean> = SleepTimerManager.isActive
@@ -139,6 +143,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun loadSongs() {
         viewModelScope.launch {
             _songs.value = repository.getAllSongs()
+            libraryRepository.updateLibrary(_songs.value)
             if (_songs.value.isNotEmpty() && _currentSong.value == null) {
                 _currentSong.value = _songs.value.first()
             }
@@ -158,6 +163,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playerService.playSong(song)
         loadAlbumArt(song)
         updateQueue()
+    }
+    
+    fun playSongs(songs: List<Song>, startIndex: Int = 0) {
+        if (songs.isNotEmpty() && startIndex < songs.size) {
+            _songs.value = songs
+            playSong(songs[startIndex])
+        }
     }
     
     fun togglePlayPause() {

@@ -15,26 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
-import kotlin.random.Random
-
-data class Genre(
-    val name: String,
-    val songCount: Int,
-    val color: Color
-)
 
 @Composable
-fun GenresTab(viewModel: PlayerViewModel) {
-    val songs by viewModel.songs.collectAsState()
-    
-    val genres = remember(songs) {
-        listOf(
-            Genre("Music", 19, Color(0xFF8B7355)),
-            Genre("Heavy Metal", 3, Color(0xFF6B4C9A)),
-            Genre("Industrial Music Metal", 1, Color(0xFF8B4C4C)),
-            Genre("Thrash Metal", 1, Color(0xFF4C7B8B))
-        )
-    }
+fun GenresTab(
+    viewModel: PlayerViewModel,
+    onGenreClick: (com.gokanaz.kanazplayer.data.repository.Genre) -> Unit = {}
+) {
+    val genres by viewModel.genres.collectAsState()
     
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -57,6 +44,7 @@ fun GenresTab(viewModel: PlayerViewModel) {
             modifier = Modifier.fillMaxSize()
         ) {
             items(genres) { genre ->
+                val color = getGenreColor(genre.name)
                 ListItem(
                     headlineContent = {
                         Text(
@@ -73,7 +61,7 @@ fun GenresTab(viewModel: PlayerViewModel) {
                             modifier = Modifier
                                 .size(48.dp)
                                 .background(
-                                    color = genre.color,
+                                    color = color,
                                     shape = MaterialTheme.shapes.medium
                                 ),
                             contentAlignment = Alignment.Center
@@ -86,11 +74,15 @@ fun GenresTab(viewModel: PlayerViewModel) {
                         }
                     },
                     trailingContent = {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
+                        IconButton(onClick = { 
+                            if (genre.songs.isNotEmpty()) {
+                                viewModel.playSongs(genre.songs)
+                            }
+                        }) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play All")
                         }
                     },
-                    modifier = Modifier.clickable { }
+                    modifier = Modifier.clickable { onGenreClick(genre) }
                 )
             }
             
@@ -98,5 +90,16 @@ fun GenresTab(viewModel: PlayerViewModel) {
                 Spacer(modifier = Modifier.height(80.dp))
             }
         }
+    }
+}
+
+fun getGenreColor(genreName: String): Color {
+    return when (genreName) {
+        "Heavy Metal" -> Color(0xFF6B4C9A)
+        "Rock" -> Color(0xFF8B4C4C)
+        "Pop" -> Color(0xFFE91E63)
+        "Jazz" -> Color(0xFF3F51B5)
+        "Classical" -> Color(0xFF795548)
+        else -> Color(0xFF8B7355)
     }
 }
