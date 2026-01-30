@@ -64,10 +64,6 @@ object MusicPlayerManager {
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build().apply {
                     addListener(object : Player.Listener {
-                        override fun onPlaybackStateChanged(playbackState: Int) {
-                            _isPlaying.value = isPlaying
-                        }
-                        
                         override fun onIsPlayingChanged(playing: Boolean) {
                             _isPlaying.value = playing
                         }
@@ -120,9 +116,8 @@ object MusicPlayerManager {
                 
                 player.setMediaItem(mediaItem)
                 player.prepare()
-                player.play()
+                player.playWhenReady = true
                 _currentSong.value = song
-                _isPlaying.value = true
                 _duration.value = song.duration
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -131,29 +126,28 @@ object MusicPlayerManager {
     }
     
     fun togglePlayPause(context: Context) {
-        val player = getPlayer(context)
-        if (player.isPlaying) {
-            player.pause()
-        } else {
-            if (requestAudioFocus(context)) {
-                player.play()
+        exoPlayer?.let { player ->
+            if (player.playWhenReady) {
+                player.playWhenReady = false
+            } else {
+                if (requestAudioFocus(context)) {
+                    player.playWhenReady = true
+                }
             }
         }
-        _isPlaying.value = player.isPlaying
     }
     
     fun seekTo(context: Context, position: Long) {
-        val player = getPlayer(context)
-        player.seekTo(position)
+        exoPlayer?.seekTo(position)
         _currentPosition.value = position
     }
     
     fun getCurrentPosition(context: Context): Long {
-        return getPlayer(context).currentPosition
+        return exoPlayer?.currentPosition ?: 0L
     }
     
     fun getDuration(context: Context): Long {
-        val duration = getPlayer(context).duration
+        val duration = exoPlayer?.duration ?: 0L
         return if (duration > 0) duration else 0
     }
     
