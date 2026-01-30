@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.service.MusicPlaybackService
 import com.gokanaz.kanazplayer.ui.library.SongListScreen
 import com.gokanaz.kanazplayer.ui.player.PlayerScreen
