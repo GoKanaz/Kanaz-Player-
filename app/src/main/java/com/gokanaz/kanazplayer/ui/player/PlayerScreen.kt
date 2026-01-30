@@ -2,7 +2,6 @@ package com.gokanaz.kanazplayer.ui.player
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gokanaz.kanazplayer.ui.sleep.SleepTimerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +43,10 @@ fun PlayerScreen(
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val isRepeatEnabled by viewModel.isRepeatEnabled.collectAsState()
     val albumArt by viewModel.albumArt.collectAsState()
+    val sleepTimerActive by viewModel.sleepTimerActive.collectAsState()
+    val sleepTimerRemaining by viewModel.sleepTimerRemaining.collectAsState()
+    
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
     
     var hasPermission by remember {
         mutableStateOf(
@@ -86,6 +90,22 @@ fun PlayerScreen(
         if (duration > 0 && currentPosition >= duration - 500 && isPlaying) {
             viewModel.playNext()
         }
+    }
+    
+    if (showSleepTimerDialog) {
+        SleepTimerDialog(
+            isActive = sleepTimerActive,
+            remainingTime = sleepTimerRemaining,
+            onDismiss = { showSleepTimerDialog = false },
+            onSetTimer = { minutes ->
+                viewModel.setSleepTimer(minutes)
+                showSleepTimerDialog = false
+            },
+            onCancel = {
+                viewModel.cancelSleepTimer()
+                showSleepTimerDialog = false
+            }
+        )
     }
     
     if (!hasPermission) {
@@ -132,6 +152,13 @@ fun PlayerScreen(
             TopAppBar(
                 title = { Text("Now Playing") },
                 actions = {
+                    IconButton(onClick = { showSleepTimerDialog = true }) {
+                        Icon(
+                            Icons.Default.Timer,
+                            contentDescription = "Sleep Timer",
+                            tint = if (sleepTimerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     IconButton(onClick = onQueueClick) {
                         Icon(Icons.Default.QueueMusic, contentDescription = "Queue")
                     }

@@ -8,6 +8,7 @@ import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.data.repository.MusicRepository
 import com.gokanaz.kanazplayer.service.MusicPlayerManager
 import com.gokanaz.kanazplayer.service.MusicPlayerService
+import com.gokanaz.kanazplayer.service.SleepTimerManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MusicRepository(application)
     private val playerService = MusicPlayerService(application)
+    private val context = application
     
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs
@@ -42,6 +44,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val queue: StateFlow<List<Song>> = _queue
     
     val isPlaying = playerService.isPlaying
+    val sleepTimerActive = SleepTimerManager.isActive
+    val sleepTimerRemaining = SleepTimerManager.remainingTime
     
     init {
         startPositionUpdater()
@@ -159,6 +163,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun toggleRepeat() {
         _isRepeatEnabled.value = !_isRepeatEnabled.value
+    }
+    
+    fun setSleepTimer(minutes: Int) {
+        SleepTimerManager.startTimer(context, minutes)
+    }
+    
+    fun cancelSleepTimer() {
+        SleepTimerManager.cancelTimer()
     }
     
     override fun onCleared() {
