@@ -57,7 +57,7 @@ object MusicPlayerManager {
         }
     }
     
-    private fun initializePlayer(context: Context): ExoPlayer {
+    fun getPlayer(context: Context): ExoPlayer {
         if (exoPlayer == null) {
             Log.d(TAG, "Initializing ExoPlayer")
             audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -155,7 +155,7 @@ object MusicPlayerManager {
         }
         
         try {
-            val player = initializePlayer(context)
+            val player = getPlayer(context)
             
             val uri = Uri.parse(song.path)
             Log.d(TAG, "Parsed URI: $uri")
