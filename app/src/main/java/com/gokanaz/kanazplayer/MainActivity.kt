@@ -33,16 +33,16 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            var isDarkTheme by remember { mutableStateOf(isSystemInDarkTheme()) }
+            val isDarkTheme = remember { mutableStateOf(isSystemInDarkTheme()) }
             
-            KanazPlayerTheme(darkTheme = isDarkTheme) {
+            KanazPlayerTheme(darkTheme = isDarkTheme.value) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MusicPlayerApp(
-                        isDarkTheme = isDarkTheme,
-                        onThemeChange = { isDarkTheme = it }
+                        isDarkTheme = isDarkTheme.value,
+                        onThemeChange = { isDarkTheme.value = it }
                     )
                 }
             }
@@ -82,7 +82,7 @@ fun MusicPlayerApp(
                 songs = songs,
                 currentSong = currentSong,
                 isPlaying = isPlaying,
-                onSongClick = { song ->
+                onSongClick = { song: Song ->
                     viewModel.playSong(song)
                     currentScreen = Screen.PLAYER
                 },
@@ -94,11 +94,11 @@ fun MusicPlayerApp(
                 queue = queue,
                 currentSong = currentSong,
                 isPlaying = isPlaying,
-                onSongClick = { song ->
+                onSongClick = { song: Song ->
                     viewModel.playSong(song)
                     currentScreen = Screen.PLAYER
                 },
-                onRemoveFromQueue = { index ->
+                onRemoveFromQueue = { index: Int ->
                     viewModel.removeFromQueue(index)
                 },
                 onClearQueue = {

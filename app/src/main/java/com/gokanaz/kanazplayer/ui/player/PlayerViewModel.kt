@@ -46,11 +46,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue
     
-    val playlists = playlistRepository.playlists
+    val playlists: StateFlow<List<Playlist>> = playlistRepository.playlists
     
-    val isPlaying = playerService.isPlaying
-    val sleepTimerActive = SleepTimerManager.isActive
-    val sleepTimerRemaining = SleepTimerManager.remainingTime
+    val isPlaying: StateFlow<Boolean> = playerService.isPlaying
+    val sleepTimerActive: StateFlow<Boolean> = SleepTimerManager.isActive
+    val sleepTimerRemaining: StateFlow<Long> = SleepTimerManager.remainingTime
     
     init {
         startPositionUpdater()
