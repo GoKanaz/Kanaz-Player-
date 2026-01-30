@@ -3,6 +3,7 @@ package com.gokanaz.kanazplayer.ui.player
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -22,6 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+
+private const val TAG = "PlayerScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,7 +154,6 @@ fun PlayerScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Album Art
             Box(
                 modifier = Modifier
                     .size(260.dp)
@@ -169,11 +171,10 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // 🔧 PERBAIKAN BUG #2: Berikan tinggi tetap untuk area judul lagu
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp), // Tinggi tetap untuk menghindari pergeseran
+                    .height(80.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -200,7 +201,6 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Progress Slider
             Column(modifier = Modifier.fillMaxWidth()) {
                 val progress = if (duration > 0) {
                     (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
@@ -225,13 +225,15 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Shuffle, Repeat, Queue buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { viewModel.toggleShuffle() }) {
+                IconButton(onClick = { 
+                    Log.d(TAG, "Shuffle button clicked")
+                    viewModel.toggleShuffle() 
+                }) {
                     Icon(
                         Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
@@ -242,7 +244,10 @@ fun PlayerScreen(
                         }
                     )
                 }
-                IconButton(onClick = { viewModel.toggleRepeat() }) {
+                IconButton(onClick = { 
+                    Log.d(TAG, "Repeat button clicked")
+                    viewModel.toggleRepeat() 
+                }) {
                     Icon(
                         Icons.Default.Repeat,
                         contentDescription = "Repeat",
@@ -253,7 +258,10 @@ fun PlayerScreen(
                         }
                     )
                 }
-                IconButton(onClick = onLibraryClick) {
+                IconButton(onClick = {
+                    Log.d(TAG, "Queue button clicked")
+                    onLibraryClick()
+                }) {
                     Icon(
                         Icons.Default.QueueMusic,
                         contentDescription = "Queue",
@@ -264,7 +272,6 @@ fun PlayerScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 🔧 PERBAIKAN BUG #2: Gunakan Box dengan tinggi tetap untuk tombol kontrol
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -277,7 +284,10 @@ fun PlayerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { viewModel.playPrevious() },
+                        onClick = { 
+                            Log.d(TAG, "=== PREVIOUS BUTTON CLICKED ===")
+                            viewModel.playPrevious() 
+                        },
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
@@ -291,7 +301,13 @@ fun PlayerScreen(
                         modifier = Modifier.size(72.dp),
                         shape = MaterialTheme.shapes.extraLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        onClick = { viewModel.togglePlayPause() }
+                        onClick = { 
+                            Log.d(TAG, "=== PLAY/PAUSE BUTTON CLICKED ===")
+                            Log.d(TAG, "Current song: ${currentSong?.title}")
+                            Log.d(TAG, "Is playing: $isPlaying")
+                            Log.d(TAG, "Songs count: ${songs.size}")
+                            viewModel.togglePlayPause()
+                        }
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -307,7 +323,10 @@ fun PlayerScreen(
                     }
                     
                     IconButton(
-                        onClick = { viewModel.playNext() },
+                        onClick = { 
+                            Log.d(TAG, "=== NEXT BUTTON CLICKED ===")
+                            viewModel.playNext() 
+                        },
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
