@@ -7,20 +7,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.service.MusicPlaybackService
-import com.gokanaz.kanazplayer.ui.equalizer.EqualizerScreen
-import com.gokanaz.kanazplayer.ui.library.SongListScreen
-import com.gokanaz.kanazplayer.ui.player.PlayerScreen
+import com.gokanaz.kanazplayer.ui.home.HomeScreen
+import com.gokanaz.kanazplayer.ui.library.LibraryScreen
+import com.gokanaz.kanazplayer.ui.player.MiniPlayer
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
-import com.gokanaz.kanazplayer.ui.playlist.PlaylistScreen
-import com.gokanaz.kanazplayer.ui.queue.QueueScreen
-import com.gokanaz.kanazplayer.ui.settings.SettingsScreen
 import com.gokanaz.kanazplayer.ui.theme.KanazPlayerTheme
 
 class MainActivity : ComponentActivity() {
@@ -54,87 +53,56 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    PLAYER, LIBRARY, QUEUE, SETTINGS, PLAYLISTS, EQUALIZER
+    HOME, LIBRARY
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicPlayerApp(
     viewModel: PlayerViewModel = viewModel(),
     isDarkTheme: Boolean,
     onThemeChange: (Boolean) -> Unit
 ) {
-    var currentScreen by remember { mutableStateOf(Screen.PLAYER) }
-    val songs by viewModel.songs.collectAsState()
+    var currentScreen by remember { mutableStateOf(Screen.HOME) }
+    var showFullPlayer by remember { mutableStateOf(false) }
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val queue by viewModel.queue.collectAsState()
-    val playlists by viewModel.playlists.collectAsState()
     
-    when (currentScreen) {
-        Screen.PLAYER -> {
-            PlayerScreen(
-                viewModel = viewModel,
-                onLibraryClick = { currentScreen = Screen.LIBRARY },
-                onQueueClick = { currentScreen = Screen.QUEUE },
-                onSettingsClick = { currentScreen = Screen.SETTINGS },
-                onPlaylistsClick = { currentScreen = Screen.PLAYLISTS },
-                onEqualizerClick = { currentScreen = Screen.EQUALIZER }
-            )
+    Scaffold(
+        bottomBar = {
+            if (currentSong != null && !showFullPlayer) {
+                MiniPlayer(
+                    song = currentSong!!,
+                    isPlaying = isPlaying,
+                    onPlayPauseClick = { viewModel.togglePlayPause() },
+                    onNextClick = { viewModel.playNext() },
+                    onClick = { showFullPlayer = true }
+                )
+            }
         }
-        Screen.LIBRARY -> {
-            SongListScreen(
-                songs = songs,
-                currentSong = currentSong,
-                isPlaying = isPlaying,
-                onSongClick = { song: Song ->
-                    viewModel.playSong(song)
-                    currentScreen = Screen.PLAYER
-                },
-                onBackClick = { currentScreen = Screen.PLAYER }
-            )
-        }
-        Screen.QUEUE -> {
-            QueueScreen(
-                queue = queue,
-                currentSong = currentSong,
-                isPlaying = isPlaying,
-                onSongClick = { song: Song ->
-                    viewModel.playSong(song)
-                    currentScreen = Screen.PLAYER
-                },
-                onRemoveFromQueue = { index: Int ->
-                    viewModel.removeFromQueue(index)
-                },
-                onClearQueue = {
-                    viewModel.clearQueue()
-                },
-                onBackClick = { currentScreen = Screen.PLAYER }
-            )
-        }
-        Screen.SETTINGS -> {
-            SettingsScreen(
-                isDarkTheme = isDarkTheme,
-                onThemeChange = onThemeChange,
-                onBackClick = { currentScreen = Screen.PLAYER }
-            )
-        }
-        Screen.PLAYLISTS -> {
-            PlaylistScreen(
-                playlists = playlists,
-                onPlaylistClick = { playlist ->
-                    currentScreen = Screen.PLAYER
-                },
-                onCreatePlaylist = { name ->
-                    viewModel.createPlaylist(name)
-                },
-                onBackClick = { currentScreen = Screen.PLAYER }
-            )
-        }
-        Screen.EQUALIZER -> {
-            EqualizerScreen(
-                onBackClick = { currentScreen = Screen.PLAYER },
-                viewModel = viewModel
-            )
+    ) { paddingValues ->
+        when (currentScreen) {
+            Screen.HOME -> {
+                HomeScreen(
+                    modifier = Modifier.padding(paddingValues),
+                    viewModel = viewModel,
+                    isDarkTheme = isDarkTheme,
+                    onThemeChange = onThemeChange,
+                    onNavigateToLibrary = { currentScreen = Screen.LIBRARY },
+                    onExpandPlayer = { showFullPlayer = true }
+                )
+            }
+            Screen.LIBRARY -> {
+                LibraryScreen(
+                    modifier = Modifier.padding(paddingValues),
+                    viewModel = viewModel,
+                    onBackClick = { currentScreen = Screen.HOME },
+                    onSongClick = { song ->
+                        viewModel.playSong(song)
+                        currentScreen = Screen.HOME
+                    }
+                )
+            }
         }
     }
 }
