@@ -34,7 +34,8 @@ fun PlayerScreen(
     onLibraryClick: () -> Unit = {},
     onQueueClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onPlaylistsClick: () -> Unit = {}
+    onPlaylistsClick: () -> Unit = {},
+    onEqualizerClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val currentSong by viewModel.currentSong.collectAsState()
@@ -187,6 +188,14 @@ fun PlayerScreen(
                             },
                             leadingIcon = { Icon(Icons.Default.QueueMusic, null) }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Equalizer") },
+                            onClick = {
+                                showMenu = false
+                                onEqualizerClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.GraphicEq, null) }
+                        )
                         HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("Settings") },
@@ -326,6 +335,13 @@ fun PlayerScreen(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
+                    )
+                }
+                IconButton(onClick = onEqualizerClick) {
+                    Icon(
+                        Icons.Default.GraphicEq,
+                        contentDescription = "Equalizer",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(onClick = onQueueClick) {
