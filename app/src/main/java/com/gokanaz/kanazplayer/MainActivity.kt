@@ -34,16 +34,17 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            val isDarkTheme = remember { mutableStateOf(isSystemInDarkTheme()) }
+            val systemInDarkTheme = isSystemInDarkTheme()
+            var isDarkTheme by remember { mutableStateOf(systemInDarkTheme) }
             
-            KanazPlayerTheme(darkTheme = isDarkTheme.value) {
+            KanazPlayerTheme(darkTheme = isDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MusicPlayerApp(
-                        isDarkTheme = isDarkTheme.value,
-                        onThemeChange = { isDarkTheme.value = it }
+                        isDarkTheme = isDarkTheme,
+                        onThemeChange = { isDarkTheme = it }
                     )
                 }
             }
