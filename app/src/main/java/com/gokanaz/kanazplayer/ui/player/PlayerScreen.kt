@@ -194,7 +194,7 @@ fun PlayerScreen(
                                 showMenu = false
                                 onEqualizerClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.Equalizer, null) }
+                            leadingIcon = { Icon(Icons.Default.GraphicEq, null) }
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
@@ -335,6 +335,13 @@ fun PlayerScreen(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
+                    )
+                }
+                IconButton(onClick = onEqualizerClick) {
+                    Icon(
+                        Icons.Default.GraphicEq,
+                        contentDescription = "Equalizer",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(onClick = onQueueClick) {

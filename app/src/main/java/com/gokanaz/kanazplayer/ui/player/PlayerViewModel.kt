@@ -2,13 +2,15 @@ package com.gokanaz.kanazplayer.ui.player
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
+import android.media.audiofx.Virtualizer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.gokanaz.kanazplayer.data.model.EqualizerPreset
 import com.gokanaz.kanazplayer.data.model.Playlist
 import com.gokanaz.kanazplayer.data.model.Song
-import com.gokanaz.kanazplayer.data.repository.MusicRepository
-import com.gokanaz.kanazplayer.data.repository.PlaylistRepository
-import com.gokanaz.kanazplayer.service.EqualizerManager
+import com.gokanaz.kanazplayer.data.repository.*
 import com.gokanaz.kanazplayer.service.MusicPlayerManager
 import com.gokanaz.kanazplayer.service.MusicPlayerService
 import com.gokanaz.kanazplayer.service.SleepTimerManager
@@ -20,8 +22,13 @@ import kotlinx.coroutines.launch
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MusicRepository(application)
     private val playlistRepository = PlaylistRepository(application)
+    private val libraryRepository = LibraryRepository(application)
     private val playerService = MusicPlayerService(application)
     private val context = application
+    
+    private var bassBoostEffect: BassBoost? = null
+    private var virtualizerEffect: Virtualizer? = null
+    private var equalizerEffect: Equalizer? = null
     
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs
@@ -47,21 +54,159 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue
     
-    val playlists = playlistRepository.playlists
+    private val _equalizerEnabled = MutableStateFlow(false)
+    val equalizerEnabled: StateFlow<Boolean> = _equalizerEnabled
     
-    val isPlaying = playerService.isPlaying
-    val sleepTimerActive = SleepTimerManager.isActive
-    val sleepTimerRemaining = SleepTimerManager.remainingTime
+    private val _currentPreset = MutableStateFlow("Normal")
+    val currentPreset: StateFlow<String> = _currentPreset
     
-    val equalizerEnabled = EqualizerManager.isEnabled
-    val equalizerPreset = EqualizerManager.selectedPreset
-    val equalizerBands = EqualizerManager.bandLevels
-    val bassBoost = EqualizerManager.bassBoostLevel
-    val virtualizer = EqualizerManager.virtualizerLevel
+    private val _band60Hz = MutableStateFlow(0)
+    val band60Hz: StateFlow<Int> = _band60Hz
+    
+    private val _band230Hz = MutableStateFlow(0)
+    val band230Hz: StateFlow<Int> = _band230Hz
+    
+    private val _band910Hz = MutableStateFlow(0)
+    val band910Hz: StateFlow<Int> = _band910Hz
+    
+    private val _band4kHz = MutableStateFlow(0)
+    val band4kHz: StateFlow<Int> = _band4kHz
+    
+    private val _band14kHz = MutableStateFlow(0)
+    val band14kHz: StateFlow<Int> = _band14kHz
+    
+    private val _bassBoost = MutableStateFlow(0)
+    val bassBoost: StateFlow<Int> = _bassBoost
+    
+    private val _virtualizerStrength = MutableStateFlow(0)
+    val virtualizerStrength: StateFlow<Int> = _virtualizerStrength
+    
+    val playlists: StateFlow<List<Playlist>> = playlistRepository.playlists
+    val folders: StateFlow<List<MusicFolder>> = libraryRepository.folders
+    val albums: StateFlow<List<Album>> = libraryRepository.albums
+    val artists: StateFlow<List<Artist>> = libraryRepository.artists
+    val genres: StateFlow<List<Genre>> = libraryRepository.genres
+    
+    val isPlaying: StateFlow<Boolean> = playerService.isPlaying
+    val sleepTimerActive: StateFlow<Boolean> = SleepTimerManager.isActive
+    val sleepTimerRemaining: StateFlow<Long> = SleepTimerManager.remainingTime
     
     init {
         startPositionUpdater()
         observeCurrentSong()
+        initializeAudioEffects()
+        setupCompletionListener()
+    }
+    
+    private fun setupCompletionListener() {
+        playerService.setOnCompletionListener {
+            playNext()
+        }
+    }
+    
+    private fun initializeAudioEffects() {
+        try {
+            val audioSessionId = playerService.getAudioSessionId()
+            
+            equalizerEffect = Equalizer(0, audioSessionId).apply {
+                enabled = false
+            }
+            
+            bassBoostEffect = BassBoost(0, audioSessionId).apply {
+                enabled = false
+            }
+            
+            virtualizerEffect = Virtualizer(0, audioSessionId).apply {
+                enabled = false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    
+    fun setEqualizerEnabled(enabled: Boolean) {
+        _equalizerEnabled.value = enabled
+        equalizerEffect?.enabled = enabled
+        bassBoostEffect?.enabled = enabled
+        virtualizerEffect?.enabled = enabled
+    }
+    
+    fun setEqualizerPreset(presetName: String) {
+        _currentPreset.value = presetName
+        val preset = EqualizerPreset.getPresets().find { it.name == presetName }
+        preset?.let {
+            setBand60Hz(it.bands[0])
+            setBand230Hz(it.bands[1])
+            setBand910Hz(it.bands[2])
+            setBand4kHz(it.bands[3])
+            setBand14kHz(it.bands[4])
+        }
+    }
+    
+    fun setBand60Hz(level: Int) {
+        _band60Hz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 1) {
+                it.setBandLevel(0, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand230Hz(level: Int) {
+        _band230Hz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 2) {
+                it.setBandLevel(1, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand910Hz(level: Int) {
+        _band910Hz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 3) {
+                it.setBandLevel(2, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand4kHz(level: Int) {
+        _band4kHz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 4) {
+                it.setBandLevel(3, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand14kHz(level: Int) {
+        _band14kHz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 5) {
+                it.setBandLevel(4, level.toShort())
+            }
+        }
+    }
+    
+    fun setBassBoost(strength: Int) {
+        _bassBoost.value = strength
+        bassBoostEffect?.setStrength(strength.toShort())
+    }
+    
+    fun setVirtualizerStrength(strength: Int) {
+        _virtualizerStrength.value = strength
+        virtualizerEffect?.setStrength(strength.toShort())
+    }
+    
+    fun resetEqualizer() {
+        setBand60Hz(0)
+        setBand230Hz(0)
+        setBand910Hz(0)
+        setBand4kHz(0)
+        setBand14kHz(0)
+        setBassBoost(0)
+        setVirtualizerStrength(0)
+        _currentPreset.value = "Normal"
     }
     
     private fun observeCurrentSong() {
@@ -94,6 +239,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun loadSongs() {
         viewModelScope.launch {
             _songs.value = repository.getAllSongs()
+            libraryRepository.updateLibrary(_songs.value)
             if (_songs.value.isNotEmpty() && _currentSong.value == null) {
                 _currentSong.value = _songs.value.first()
             }
@@ -115,13 +261,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         updateQueue()
     }
     
+    fun playSongs(songs: List<Song>, startIndex: Int = 0) {
+        if (songs.isNotEmpty() && startIndex < songs.size) {
+            _songs.value = songs
+            playSong(songs[startIndex])
+        }
+    }
+    
     fun togglePlayPause() {
-        _currentSong.value?.let { song ->
-            if (!isPlaying.value && playerService.getCurrentPosition() == 0L) {
-                playerService.playSong(song)
-            } else {
-                playerService.togglePlayPause()
-            }
+        if (_currentSong.value == null && _songs.value.isNotEmpty()) {
+            playSong(_songs.value.first())
+        } else {
+            playerService.togglePlayPause()
         }
     }
     
@@ -131,6 +282,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playNext() {
+        if (_songs.value.isEmpty()) return
+        
         if (_isRepeatEnabled.value) {
             _currentSong.value?.let { playSong(it) }
             return
@@ -149,6 +302,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun playPrevious() {
+        if (_songs.value.isEmpty()) return
+        
         val currentIndex = _songs.value.indexOf(_currentSong.value)
         val prevIndex = if (currentIndex > 0) currentIndex - 1 else _songs.value.size - 1
         
@@ -193,28 +348,40 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playlistRepository.addSongToPlaylist(playlistId, songId)
     }
     
-    fun setEqualizerEnabled(enabled: Boolean) {
-        EqualizerManager.setEnabled(enabled)
+    fun addToQueue(song: Song) {
+        val currentQueue = _queue.value.toMutableList()
+        currentQueue.add(song)
+        _queue.value = currentQueue
     }
     
-    fun setEqualizerPreset(preset: String) {
-        EqualizerManager.setPreset(preset)
+    fun addToQueueNext(song: Song) {
+        val currentQueue = _queue.value.toMutableList()
+        if (currentQueue.isNotEmpty()) {
+            val currentIndex = currentQueue.indexOfFirst { it.id == _currentSong.value?.id }
+            if (currentIndex >= 0 && currentIndex < currentQueue.size - 1) {
+                currentQueue.add(currentIndex + 1, song)
+            } else {
+                currentQueue.add(song)
+            }
+        } else {
+            currentQueue.add(song)
+        }
+        _queue.value = currentQueue
     }
     
-    fun setEqualizerBand(band: Int, level: Float) {
-        EqualizerManager.setBandLevel(band, level)
-    }
-    
-    fun setBassBoost(level: Float) {
-        EqualizerManager.setBassBoost(level)
-    }
-    
-    fun setVirtualizer(level: Float) {
-        EqualizerManager.setVirtualizer(level)
+    suspend fun getAlbumArt(song: Song): Bitmap? {
+        return try {
+            repository.getAlbumArt(song)
+        } catch (e: Exception) {
+            null
+        }
     }
     
     override fun onCleared() {
         super.onCleared()
+        equalizerEffect?.release()
+        bassBoostEffect?.release()
+        virtualizerEffect?.release()
         playerService.release()
     }
 }
