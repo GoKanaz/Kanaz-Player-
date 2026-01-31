@@ -2,7 +2,9 @@ package com.gokanaz.kanazplayer.ui.player
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,10 +18,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.gokanaz.kanazplayer.ui.components.*
 import com.gokanaz.kanazplayer.ui.equalizer.EqualizerDialog
 import com.gokanaz.kanazplayer.ui.queue.QueueDialog
 import com.gokanaz.kanazplayer.ui.sleep.SleepTimerDialog
+
+enum class RepeatMode {
+    OFF, ALL, ONE
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +46,7 @@ fun FullPlayerScreen(
     val sleepTimerRemaining by viewModel.sleepTimerRemaining.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     
+    var repeatMode by remember { mutableStateOf(RepeatMode.OFF) }
     var showSleepTimer by remember { mutableStateOf(false) }
     var showEqualizer by remember { mutableStateOf(false) }
     var showQueue by remember { mutableStateOf(false) }
@@ -58,7 +66,7 @@ fun FullPlayerScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -75,12 +83,14 @@ fun FullPlayerScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "Lagu",
-                        style = MaterialTheme.typography.titleMedium
+                        text = currentSong?.title ?: "No Song",
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     if (currentSong != null) {
                         Text(
-                            text = currentSong!!.album,
+                            text = currentSong!!.artist,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -98,14 +108,14 @@ fun FullPlayerScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
+                    .padding(horizontal = 40.dp)
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -126,66 +136,49 @@ fun FullPlayerScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
             
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-            ) {
-                Text(
-                    text = currentSong?.title ?: "No Song",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = currentSong?.artist ?: "Unknown Artist",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 32.dp)
             ) {
                 val progress = if (duration > 0) {
                     (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                 } else 0f
                 
-                Slider(
-                    value = progress,
-                    onValueChange = { newValue ->
-                        val newPosition = (newValue * duration).toLong()
-                        viewModel.seekTo(newPosition)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         formatDuration(currentPosition),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
                     Text(
                         formatDuration(duration),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             
             Row(
                 modifier = Modifier
@@ -195,7 +188,70 @@ fun FullPlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { viewModel.toggleShuffle() },
+                    onClick = { 
+                        repeatMode = when (repeatMode) {
+                            RepeatMode.OFF -> RepeatMode.ALL
+                            RepeatMode.ALL -> RepeatMode.ONE
+                            RepeatMode.ONE -> RepeatMode.OFF
+                        }
+                        viewModel.toggleRepeat()
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = if (repeatMode == RepeatMode.ONE) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                        contentDescription = "Repeat",
+                        tint = if (repeatMode != RepeatMode.OFF) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable { viewModel.togglePlayPause() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                
+                IconButton(
+                    onClick = { 
+                        viewModel.toggleShuffle()
+                    },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
@@ -206,132 +262,38 @@ fun FullPlayerScreen(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                
-                IconButton(
-                    onClick = { viewModel.playPrevious() },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                
-                FilledIconButton(
-                    onClick = { viewModel.togglePlayPause() },
-                    modifier = Modifier.size(80.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                
-                IconButton(
-                    onClick = { viewModel.playNext() },
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                
-                IconButton(
-                    onClick = { viewModel.toggleRepeat() },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Repeat,
-                        contentDescription = "Repeat",
-                        tint = if (isRepeatEnabled) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
             
             Spacer(modifier = Modifier.weight(1f))
             
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                IconButton(
-                    onClick = { showSleepTimer = true },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Timer,
-                        contentDescription = "Sleep Timer",
-                        tint = if (sleepTimerActive) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(
-                    onClick = { showEqualizer = true },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.GraphicEq,
-                        contentDescription = "Equalizer",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                IconButton(
-                    onClick = { showQueue = true },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.QueueMusic,
-                        contentDescription = "Queue",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-            
             if (queue.size > 1) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                        .padding(horizontal = 32.dp, vertical = 16.dp)
+                        .clickable { showQueue = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.MusicNote,
+                            Icons.Default.QueueMusic,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Next song: ${queue.getOrNull(1)?.title ?: ""}",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
@@ -340,7 +302,7 @@ fun FullPlayerScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
     
