@@ -1,6 +1,8 @@
 package com.gokanaz.kanazplayer.ui.equalizer
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,7 +44,8 @@ fun EqualizerDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 500.dp)
+                    .heightIn(max = 600.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 EqualizerPresetDropdown(
                     currentPreset = currentPreset,
@@ -58,17 +61,36 @@ fun EqualizerDialog(
                     band910Hz = band910Hz,
                     band4kHz = band4kHz,
                     band14kHz = band14kHz,
-                    onBand60HzChange = { viewModel.setBand60Hz(it) },
-                    onBand230HzChange = { viewModel.setBand230Hz(it) },
-                    onBand910HzChange = { viewModel.setBand910Hz(it) },
-                    onBand4kHzChange = { viewModel.setBand4kHz(it) },
-                    onBand14kHzChange = { viewModel.setBand14kHz(it) },
+                    onBand60HzChange = { 
+                        viewModel.setBand60Hz(it)
+                        viewModel.setEqualizerPreset("Pengguna")
+                    },
+                    onBand230HzChange = { 
+                        viewModel.setBand230Hz(it)
+                        viewModel.setEqualizerPreset("Pengguna")
+                    },
+                    onBand910HzChange = { 
+                        viewModel.setBand910Hz(it)
+                        viewModel.setEqualizerPreset("Pengguna")
+                    },
+                    onBand4kHzChange = { 
+                        viewModel.setBand4kHz(it)
+                        viewModel.setEqualizerPreset("Pengguna")
+                    },
+                    onBand14kHzChange = { 
+                        viewModel.setBand14kHz(it)
+                        viewModel.setEqualizerPreset("Pengguna")
+                    },
                     enabled = equalizerEnabled
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                Text("Penguat bass")
+                HorizontalDivider()
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("Penguat bass: $bassBoost")
                 Slider(
                     value = bassBoost.toFloat(),
                     onValueChange = { viewModel.setBassBoost(it.toInt()) },
@@ -78,7 +100,7 @@ fun EqualizerDialog(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Text("Suara surround")
+                Text("Suara surround: $virtualizerStrength")
                 Slider(
                     value = virtualizerStrength.toFloat(),
                     onValueChange = { viewModel.setVirtualizerStrength(it.toInt()) },
@@ -90,6 +112,13 @@ fun EqualizerDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                viewModel.resetEqualizer()
+            }) {
+                Text("Reset")
             }
         }
     )

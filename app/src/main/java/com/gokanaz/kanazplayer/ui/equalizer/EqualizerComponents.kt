@@ -67,41 +67,68 @@ fun EqualizerBands(
     onBand14kHzChange: (Int) -> Unit,
     enabled: Boolean
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        EqualizerBand(
-            value = band60Hz,
-            onValueChange = onBand60HzChange,
-            label = "60 Hz",
-            enabled = enabled
+        Text(
+            text = "+10 dB",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        EqualizerBand(
-            value = band230Hz,
-            onValueChange = onBand230HzChange,
-            label = "230 Hz",
-            enabled = enabled
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            EqualizerBand(
+                value = band60Hz,
+                onValueChange = onBand60HzChange,
+                label = "60 Hz",
+                enabled = enabled
+            )
+            EqualizerBand(
+                value = band230Hz,
+                onValueChange = onBand230HzChange,
+                label = "230 Hz",
+                enabled = enabled
+            )
+            EqualizerBand(
+                value = band910Hz,
+                onValueChange = onBand910HzChange,
+                label = "910 Hz",
+                enabled = enabled
+            )
+            EqualizerBand(
+                value = band4kHz,
+                onValueChange = onBand4kHzChange,
+                label = "4 kHz",
+                enabled = enabled
+            )
+            EqualizerBand(
+                value = band14kHz,
+                onValueChange = onBand14kHzChange,
+                label = "14 kHz",
+                enabled = enabled
+            )
+        }
+        
+        Text(
+            text = "0 dB",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        EqualizerBand(
-            value = band910Hz,
-            onValueChange = onBand910HzChange,
-            label = "910 Hz",
-            enabled = enabled
-        )
-        EqualizerBand(
-            value = band4kHz,
-            onValueChange = onBand4kHzChange,
-            label = "4 kHz",
-            enabled = enabled
-        )
-        EqualizerBand(
-            value = band14kHz,
-            onValueChange = onBand14kHzChange,
-            label = "14 kHz",
-            enabled = enabled
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "-10 dB",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -115,36 +142,21 @@ fun EqualizerBand(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(60.dp)
+        modifier = Modifier.width(50.dp)
     ) {
-        Text(
-            text = "+10 dB",
-            fontSize = 10.sp,
-            textAlign = TextAlign.Center
-        )
-        
         Slider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.toInt()) },
             valueRange = -1000f..1000f,
             enabled = enabled,
             modifier = Modifier
-                .height(120.dp)
-                .width(40.dp)
-        )
-        
-        Text(
-            text = "0 dB",
-            fontSize = 10.sp,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(4.dp))
-        
-        Text(
-            text = "-10 dB",
-            fontSize = 10.sp,
-            textAlign = TextAlign.Center
+                .height(140.dp)
+                .width(40.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         )
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -152,7 +164,8 @@ fun EqualizerBand(
         Text(
             text = label,
             fontSize = 11.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

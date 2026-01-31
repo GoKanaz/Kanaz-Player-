@@ -60,11 +60,42 @@ fun EqualizerScreen(
         ) {
             EqualizerPresetDropdown(
                 currentPreset = currentPreset,
-                onPresetSelected = { viewModel.setEqualizerPreset(it) },
+                onPresetSelected = { 
+                    viewModel.setEqualizerPreset(it)
+                    if (it != "Pengguna") {
+                    }
+                },
                 enabled = equalizerEnabled
             )
             
             Spacer(modifier = Modifier.height(24.dp))
+            
+            if (equalizerEnabled) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Current: $currentPreset",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Adjust sliders to customize",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             
             EqualizerBands(
                 band60Hz = band60Hz,
@@ -72,25 +103,69 @@ fun EqualizerScreen(
                 band910Hz = band910Hz,
                 band4kHz = band4kHz,
                 band14kHz = band14kHz,
-                onBand60HzChange = { viewModel.setBand60Hz(it) },
-                onBand230HzChange = { viewModel.setBand230Hz(it) },
-                onBand910HzChange = { viewModel.setBand910Hz(it) },
-                onBand4kHzChange = { viewModel.setBand4kHz(it) },
-                onBand14kHzChange = { viewModel.setBand14kHz(it) },
+                onBand60HzChange = { 
+                    viewModel.setBand60Hz(it)
+                    viewModel.setEqualizerPreset("Pengguna")
+                },
+                onBand230HzChange = { 
+                    viewModel.setBand230Hz(it)
+                    viewModel.setEqualizerPreset("Pengguna")
+                },
+                onBand910HzChange = { 
+                    viewModel.setBand910Hz(it)
+                    viewModel.setEqualizerPreset("Pengguna")
+                },
+                onBand4kHzChange = { 
+                    viewModel.setBand4kHz(it)
+                    viewModel.setEqualizerPreset("Pengguna")
+                },
+                onBand14kHzChange = { 
+                    viewModel.setBand14kHz(it)
+                    viewModel.setEqualizerPreset("Pengguna")
+                },
                 enabled = equalizerEnabled
             )
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            HorizontalDivider()
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Text(
                 text = "Penguat bass",
                 style = MaterialTheme.typography.titleSmall
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$bassBoost",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "1000",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Slider(
                 value = bassBoost.toFloat(),
                 onValueChange = { viewModel.setBassBoost(it.toInt()) },
                 valueRange = 0f..1000f,
-                enabled = equalizerEnabled
+                enabled = equalizerEnabled,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary
+                )
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -99,11 +174,36 @@ fun EqualizerScreen(
                 text = "Suara surround",
                 style = MaterialTheme.typography.titleSmall
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$virtualizerStrength",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "1000",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Slider(
                 value = virtualizerStrength.toFloat(),
                 onValueChange = { viewModel.setVirtualizerStrength(it.toInt()) },
                 valueRange = 0f..1000f,
-                enabled = equalizerEnabled
+                enabled = equalizerEnabled,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary
+                )
             )
             
             Spacer(modifier = Modifier.height(24.dp))
