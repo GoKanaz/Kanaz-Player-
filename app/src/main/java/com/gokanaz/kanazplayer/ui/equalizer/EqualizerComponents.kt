@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,11 +78,13 @@ fun EqualizerBands(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
+        Spacer(modifier = Modifier.height(8.dp))
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
-                .padding(horizontal = 8.dp),
+                .height(200.dp)
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -117,6 +120,8 @@ fun EqualizerBands(
             )
         }
         
+        Spacer(modifier = Modifier.height(8.dp))
+        
         Text(
             text = "0 dB",
             fontSize = 12.sp,
@@ -142,22 +147,31 @@ fun EqualizerBand(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(50.dp)
+        modifier = Modifier.width(60.dp)
     ) {
-        Slider(
-            value = value.toFloat(),
-            onValueChange = { onValueChange(it.toInt()) },
-            valueRange = -1000f..1000f,
-            enabled = enabled,
+        Box(
             modifier = Modifier
-                .height(140.dp)
-                .width(40.dp),
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                .height(160.dp)
+                .width(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Slider(
+                value = -value.toFloat(), // Invert for visual correctness
+                onValueChange = { onValueChange(-it.toInt()) },
+                valueRange = -1000f..1000f,
+                enabled = enabled,
+                modifier = Modifier
+                    .width(160.dp)
+                    .rotate(270f), // Rotate to make it vertical
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    disabledActiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                )
             )
-        )
+        }
         
         Spacer(modifier = Modifier.height(8.dp))
         
@@ -165,7 +179,7 @@ fun EqualizerBand(
             text = label,
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         )
     }
 }
