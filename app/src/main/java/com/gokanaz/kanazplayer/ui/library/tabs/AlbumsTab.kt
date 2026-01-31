@@ -21,6 +21,7 @@ import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 @Composable
 fun AlbumsTab(viewModel: PlayerViewModel) {
     val albums by viewModel.albums.collectAsState()
+    val songs by viewModel.songs.collectAsState()
     var selectedAlbum by remember { mutableStateOf<Album?>(null) }
     
     if (albums.isEmpty()) {
@@ -52,7 +53,12 @@ fun AlbumsTab(viewModel: PlayerViewModel) {
             items(albums) { album ->
                 AlbumGridItem(
                     album = album,
-                    onClick = { },
+                    onClick = { 
+                        val albumSongs = songs.filter { it.album == album.name }
+                        if (albumSongs.isNotEmpty()) {
+                            viewModel.playSongs(albumSongs, 0)
+                        }
+                    },
                     onMenuClick = { selectedAlbum = album }
                 )
             }
@@ -60,10 +66,91 @@ fun AlbumsTab(viewModel: PlayerViewModel) {
     }
     
     selectedAlbum?.let { album ->
-        com.gokanaz.kanazplayer.ui.components.AlbumOptionsBottomSheet(
+        AlbumOptionsBottomSheet(
             album = album,
-            onDismiss = { selectedAlbum = null }
+            onDismiss = { selectedAlbum = null },
+            onPlay = {
+                val albumSongs = songs.filter { it.album == album.name }
+                if (albumSongs.isNotEmpty()) {
+                    viewModel.playSongs(albumSongs, 0)
+                }
+                selectedAlbum = null
+            },
+            onAddToQueue = {
+                val albumSongs = songs.filter { it.album == album.name }
+                albumSongs.forEach { viewModel.addToQueue(it) }
+                selectedAlbum = null
+            }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AlbumOptionsBottomSheet(
+    album: Album,
+    onDismiss: () -> Unit,
+    onPlay: () -> Unit,
+    onAddToQueue: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text(
+                text = album.name,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            Text(
+                text = "${album.songCount} songs",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.PlayArrow,
+                text = "Play",
+                onClick = onPlay
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.QueueMusic,
+                text = "Add to playing queue",
+                onClick = onAddToQueue
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.PlaylistAdd,
+                text = "Add to playlist",
+                onClick = onDismiss
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.Image,
+                text = "Set album cover",
+                onClick = onDismiss
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.Delete,
+                text = "Remove",
+                onClick = onDismiss,
+                isDestructive = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 

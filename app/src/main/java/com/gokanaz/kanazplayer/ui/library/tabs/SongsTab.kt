@@ -18,8 +18,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.gokanaz.kanazplayer.data.model.Playlist
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun SongsTab(
@@ -29,7 +31,15 @@ fun SongsTab(
     val songs by viewModel.songs.collectAsState()
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val playlists by viewModel.playlists.collectAsState()
+    
     var selectedSong by remember { mutableStateOf<Song?>(null) }
+    var showPlaylistDialog by remember { mutableStateOf(false) }
+    var showSongDetails by remember { mutableStateOf(false) }
+    var songForPlaylist by remember { mutableStateOf<Song?>(null) }
+    var songForDetails by remember { mutableStateOf<Song?>(null) }
+    
+    val scope = rememberCoroutineScope()
     
     if (songs.isEmpty()) {
         Box(
@@ -87,9 +97,17 @@ fun SongsTab(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(songs) { song ->
+                    var albumArt by remember { mutableStateOf<Bitmap?>(null) }
+                    
+                    LaunchedEffect(song.id) {
+                        scope.launch {
+                            albumArt = viewModel.getAlbumArt(song)
+                        }
+                    }
+                    
                     SongItemWithArt(
                         song = song,
-                        albumArt = null,
+                        albumArt = albumArt,
                         isCurrentSong = song.id == currentSong?.id,
                         isPlaying = isPlaying && song.id == currentSong?.id,
                         onClick = { onSongClick(song) },
@@ -101,11 +119,140 @@ fun SongsTab(
     }
     
     selectedSong?.let { song ->
-        com.gokanaz.kanazplayer.ui.components.SongOptionsBottomSheet(
+        SongOptionsBottomSheet(
             song = song,
-            viewModel = viewModel,
-            onDismiss = { selectedSong = null }
+            onDismiss = { selectedSong = null },
+            onPlayNext = {
+                viewModel.addToQueueNext(song)
+                selectedSong = null
+            },
+            onAddToQueue = {
+                viewModel.addToQueue(song)
+                selectedSong = null
+            },
+            onAddToPlaylist = {
+                songForPlaylist = song
+                showPlaylistDialog = true
+                selectedSong = null
+            },
+            onShowDetails = {
+                songForDetails = song
+                showSongDetails = true
+                selectedSong = null
+            }
         )
+    }
+    
+    if (showPlaylistDialog && songForPlaylist != null) {
+        com.gokanaz.kanazplayer.ui.components.AddToPlaylistDialog(
+            song = songForPlaylist!!,
+            playlists = playlists,
+            onDismiss = {
+                showPlaylistDialog = false
+                songForPlaylist = null
+            },
+            onCreateNew = { name ->
+                viewModel.createPlaylist(name)
+            },
+            onAddToPlaylist = { playlistId ->
+                viewModel.addSongToPlaylist(playlistId, songForPlaylist!!.id)
+                showPlaylistDialog = false
+                songForPlaylist = null
+            }
+        )
+    }
+    
+    if (showSongDetails && songForDetails != null) {
+        com.gokanaz.kanazplayer.ui.components.SongDetailsDialog(
+            song = songForDetails!!,
+            onDismiss = {
+                showSongDetails = false
+                songForDetails = null
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SongOptionsBottomSheet(
+    song: Song,
+    onDismiss: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onShowDetails: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.PlayArrow,
+                text = "Play next",
+                onClick = onPlayNext
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.QueueMusic,
+                text = "Add to playing queue",
+                onClick = onAddToQueue
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.PlaylistAdd,
+                text = "Add to playlist",
+                onClick = onAddToPlaylist
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.Info,
+                text = "Song details",
+                onClick = onShowDetails
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.Favorite,
+                text = "Add to my favorites",
+                onClick = onDismiss
+            )
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.Share,
+                text = "Share",
+                onClick = onDismiss
+            )
+            
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            com.gokanaz.kanazplayer.ui.components.OptionItem(
+                icon = Icons.Default.Delete,
+                text = "Remove",
+                onClick = onDismiss,
+                isDestructive = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
