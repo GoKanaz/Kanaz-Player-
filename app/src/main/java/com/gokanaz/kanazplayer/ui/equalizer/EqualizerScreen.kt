@@ -1,52 +1,63 @@
 package com.gokanaz.kanazplayer.ui.equalizer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerScreen(
-    onBackClick: () -> Unit,
-    viewModel: com.gokanaz.kanazplayer.ui.player.PlayerViewModel
+    isEnabled: Boolean,
+    selectedPreset: String,
+    bandLevels: List<Float>,
+    bassBoost: Float,
+    virtualizer: Float,
+    onEnabledChange: (Boolean) -> Unit,
+    onPresetChange: (String) -> Unit,
+    onBandLevelChange: (Int, Float) -> Unit,
+    onBassBoostChange: (Float) -> Unit,
+    onVirtualizerChange: (Float) -> Unit,
+    onBackClick: () -> Unit
 ) {
-    val equalizerEnabled by viewModel.equalizerEnabled.collectAsState()
-    val currentPreset by viewModel.currentPreset.collectAsState()
-    val band60Hz by viewModel.band60Hz.collectAsState()
-    val band230Hz by viewModel.band230Hz.collectAsState()
-    val band910Hz by viewModel.band910Hz.collectAsState()
-    val band4kHz by viewModel.band4kHz.collectAsState()
-    val band14kHz by viewModel.band14kHz.collectAsState()
-    val bassBoost by viewModel.bassBoost.collectAsState()
-    val virtualizerStrength by viewModel.virtualizerStrength.collectAsState()
+    var showPresetMenu by remember { mutableStateOf(false) }
+    
+    val presets = listOf(
+        "Normal", "Klasik", "Dance", "Rata", "Folk",
+        "Heavy Metal", "Hip Hop", "Jazz", "Pop", "Rock",
+        "Penguat FX", "Pengguna"
+    )
+    
+    val frequencies = listOf("60 Hz", "230 Hz", "910 Hz", "4 kHz", "14 kHz")
     
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Equalizer")
-                        Switch(
-                            checked = equalizerEnabled,
-                            onCheckedChange = { viewModel.setEqualizerEnabled(it) }
-                        )
-                    }
+                    Text(
+                        "Equalizer",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    Switch(
+                        checked = isEnabled,
+                        onCheckedChange = onEnabledChange
+                    )
                 }
             )
         }
@@ -55,168 +66,199 @@ fun EqualizerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
+                .background(MaterialTheme.colorScheme.surface)
         ) {
-            EqualizerPresetDropdown(
-                currentPreset = currentPreset,
-                onPresetSelected = { 
-                    viewModel.setEqualizerPreset(it)
-                    if (it != "Pengguna") {
-                    }
-                },
-                enabled = equalizerEnabled
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            if (equalizerEnabled) {
-                Card(
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { showPresetMenu = true },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    )
+                    enabled = isEnabled
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Current: $currentPreset",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Adjust sliders to customize",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Text(
+                        selectedPreset,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 18.sp
+                    )
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = showPresetMenu,
+                    onDismissRequest = { showPresetMenu = false },
+                    modifier = Modifier.fillMaxWidth(0.5f)
+                ) {
+                    presets.forEach { preset ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    preset,
+                                    fontSize = 16.sp,
+                                    fontWeight = if (preset == selectedPreset) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            onClick = {
+                                onPresetChange(preset)
+                                showPresetMenu = false
+                            }
                         )
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
             }
-            
-            EqualizerBands(
-                band60Hz = band60Hz,
-                band230Hz = band230Hz,
-                band910Hz = band910Hz,
-                band4kHz = band4kHz,
-                band14kHz = band14kHz,
-                onBand60HzChange = { 
-                    viewModel.setBand60Hz(it)
-                    viewModel.setEqualizerPreset("Pengguna")
-                },
-                onBand230HzChange = { 
-                    viewModel.setBand230Hz(it)
-                    viewModel.setEqualizerPreset("Pengguna")
-                },
-                onBand910HzChange = { 
-                    viewModel.setBand910Hz(it)
-                    viewModel.setEqualizerPreset("Pengguna")
-                },
-                onBand4kHzChange = { 
-                    viewModel.setBand4kHz(it)
-                    viewModel.setEqualizerPreset("Pengguna")
-                },
-                onBand14kHzChange = { 
-                    viewModel.setBand14kHz(it)
-                    viewModel.setEqualizerPreset("Pengguna")
-                },
-                enabled = equalizerEnabled
-            )
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            HorizontalDivider()
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "Penguat bass",
-                style = MaterialTheme.typography.titleSmall
-            )
-            Spacer(modifier = Modifier.height(4.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "0",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "$bassBoost",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "1000",
-                    style = MaterialTheme.typography.bodySmall,
+                    "+10 dB",
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Slider(
-                value = bassBoost.toFloat(),
-                onValueChange = { viewModel.setBassBoost(it.toInt()) },
-                valueRange = 0f..1000f,
-                enabled = equalizerEnabled,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary
-                )
-            )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            Text(
-                text = "Suara surround",
-                style = MaterialTheme.typography.titleSmall
-            )
-            Spacer(modifier = Modifier.height(4.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                bandLevels.forEachIndexed { index, level ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        VerticalSlider(
+                            value = level,
+                            onValueChange = { onBandLevelChange(index, it) },
+                            enabled = isEnabled,
+                            modifier = Modifier
+                                .height(200.dp)
+                                .width(48.dp)
+                        )
+                    }
+                }
+            }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "0",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "$virtualizerStrength",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "1000",
-                    style = MaterialTheme.typography.bodySmall,
+                    "-10 dB",
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Slider(
-                value = virtualizerStrength.toFloat(),
-                onValueChange = { viewModel.setVirtualizerStrength(it.toInt()) },
-                valueRange = 0f..1000f,
-                enabled = equalizerEnabled,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                frequencies.forEach { freq ->
+                    Text(
+                        freq,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Penguat bass",
+                        fontSize = 16.sp,
+                        color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Slider(
+                    value = bassBoost,
+                    onValueChange = onBassBoostChange,
+                    enabled = isEnabled,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            Button(
-                onClick = {
-                    viewModel.resetEqualizer()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = equalizerEnabled
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
             ) {
-                Text("Reset to Default")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Suara surround",
+                        fontSize = 16.sp,
+                        color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Slider(
+                    value = virtualizer,
+                    onValueChange = onVirtualizerChange,
+                    enabled = isEnabled,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
+    }
+}
+
+@Composable
+fun VerticalSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = -10f..10f,
+            enabled = enabled,
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(48.dp)
+        )
     }
 }
