@@ -3,9 +3,11 @@ package com.gokanaz.kanazplayer.ui.player
 import android.app.Application
 import android.graphics.Bitmap
 import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.gokanaz.kanazplayer.data.model.EqualizerPreset
 import com.gokanaz.kanazplayer.data.model.Playlist
 import com.gokanaz.kanazplayer.data.model.Song
 import com.gokanaz.kanazplayer.data.repository.*
@@ -26,6 +28,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     private var bassBoostEffect: BassBoost? = null
     private var virtualizerEffect: Virtualizer? = null
+    private var equalizerEffect: Equalizer? = null
     
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs: StateFlow<List<Song>> = _songs
@@ -53,6 +56,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     private val _equalizerEnabled = MutableStateFlow(false)
     val equalizerEnabled: StateFlow<Boolean> = _equalizerEnabled
+    
+    private val _currentPreset = MutableStateFlow("Normal")
+    val currentPreset: StateFlow<String> = _currentPreset
+    
+    private val _band60Hz = MutableStateFlow(0)
+    val band60Hz: StateFlow<Int> = _band60Hz
+    
+    private val _band230Hz = MutableStateFlow(0)
+    val band230Hz: StateFlow<Int> = _band230Hz
+    
+    private val _band910Hz = MutableStateFlow(0)
+    val band910Hz: StateFlow<Int> = _band910Hz
+    
+    private val _band4kHz = MutableStateFlow(0)
+    val band4kHz: StateFlow<Int> = _band4kHz
+    
+    private val _band14kHz = MutableStateFlow(0)
+    val band14kHz: StateFlow<Int> = _band14kHz
     
     private val _bassBoost = MutableStateFlow(0)
     val bassBoost: StateFlow<Int> = _bassBoost
@@ -86,9 +107,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun initializeAudioEffects() {
         try {
             val audioSessionId = playerService.getAudioSessionId()
+            
+            equalizerEffect = Equalizer(0, audioSessionId).apply {
+                enabled = false
+            }
+            
             bassBoostEffect = BassBoost(0, audioSessionId).apply {
                 enabled = false
             }
+            
             virtualizerEffect = Virtualizer(0, audioSessionId).apply {
                 enabled = false
             }
@@ -99,8 +126,66 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     fun setEqualizerEnabled(enabled: Boolean) {
         _equalizerEnabled.value = enabled
+        equalizerEffect?.enabled = enabled
         bassBoostEffect?.enabled = enabled
         virtualizerEffect?.enabled = enabled
+    }
+    
+    fun setEqualizerPreset(presetName: String) {
+        _currentPreset.value = presetName
+        val preset = EqualizerPreset.getPresets().find { it.name == presetName }
+        preset?.let {
+            setBand60Hz(it.bands[0])
+            setBand230Hz(it.bands[1])
+            setBand910Hz(it.bands[2])
+            setBand4kHz(it.bands[3])
+            setBand14kHz(it.bands[4])
+        }
+    }
+    
+    fun setBand60Hz(level: Int) {
+        _band60Hz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 1) {
+                it.setBandLevel(0, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand230Hz(level: Int) {
+        _band230Hz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 2) {
+                it.setBandLevel(1, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand910Hz(level: Int) {
+        _band910Hz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 3) {
+                it.setBandLevel(2, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand4kHz(level: Int) {
+        _band4kHz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 4) {
+                it.setBandLevel(3, level.toShort())
+            }
+        }
+    }
+    
+    fun setBand14kHz(level: Int) {
+        _band14kHz.value = level
+        equalizerEffect?.let {
+            if (it.numberOfBands >= 5) {
+                it.setBandLevel(4, level.toShort())
+            }
+        }
     }
     
     fun setBassBoost(strength: Int) {
@@ -111,6 +196,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun setVirtualizerStrength(strength: Int) {
         _virtualizerStrength.value = strength
         virtualizerEffect?.setStrength(strength.toShort())
+    }
+    
+    fun resetEqualizer() {
+        setBand60Hz(0)
+        setBand230Hz(0)
+        setBand910Hz(0)
+        setBand4kHz(0)
+        setBand14kHz(0)
+        setBassBoost(0)
+        setVirtualizerStrength(0)
+        _currentPreset.value = "Normal"
     }
     
     private fun observeCurrentSong() {
@@ -254,6 +350,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     
     override fun onCleared() {
         super.onCleared()
+        equalizerEffect?.release()
         bassBoostEffect?.release()
         virtualizerEffect?.release()
         playerService.release()
