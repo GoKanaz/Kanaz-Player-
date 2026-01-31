@@ -4,122 +4,113 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.gokanaz.kanazplayer.data.model.Playlist
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @Composable
 fun PlaylistsTab(viewModel: PlayerViewModel) {
     val playlists by viewModel.playlists.collectAsState()
+    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${playlists.size} Daftar putar",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Row {
-                IconButton(onClick = { showCreateDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add")
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (playlists.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlaylistPlay,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No playlists yet",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Create your first playlist",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    "My favorites",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    "0 songs",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
                 }
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More")
+                
+                items(playlists) { playlist ->
+                    PlaylistItem(
+                        playlist = playlist,
+                        onClick = { },
+                        onMenuClick = { selectedPlaylist = playlist }
+                    )
                 }
             }
         }
         
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp)
+        FloatingActionButton(
+            onClick = { showCreateDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
         ) {
-            item {
-                PlaylistCard(
-                    icon = Icons.Default.Favorite,
-                    title = "Favorit Saya",
-                    subtitle = "0 lagu",
-                    onClick = { }
-                )
-            }
-            
-            item {
-                PlaylistCard(
-                    icon = Icons.Default.AccessTime,
-                    title = "Terakhir Ditambahkan",
-                    subtitle = "${playlists.size} lagu",
-                    onClick = { }
-                )
-            }
-            
-            item {
-                PlaylistCard(
-                    icon = Icons.Default.Album,
-                    title = "Baru-baru ini Dimainkan",
-                    subtitle = "0 lagu",
-                    onClick = { }
-                )
-            }
-            
-            item {
-                PlaylistCard(
-                    icon = Icons.Default.Whatshot,
-                    title = "Lagu Teratas Saya",
-                    subtitle = "0 lagu",
-                    onClick = { }
-                )
-            }
-            
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Daftar Putar Saya (${playlists.size})",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            
-            items(playlists) { playlist ->
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = playlist.name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    supportingContent = {
-                        Text("${playlist.songIds.size} lagu")
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = Icons.Default.PlaylistPlay,
-                            contentDescription = null
-                        )
-                    },
-                    trailingContent = {
-                        IconButton(onClick = { }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
-                        }
-                    },
-                    modifier = Modifier.clickable { }
-                )
-            }
-            
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
-            }
+            Icon(Icons.Default.Add, contentDescription = "Create Playlist")
         }
     }
     
@@ -132,60 +123,62 @@ fun PlaylistsTab(viewModel: PlayerViewModel) {
             }
         )
     }
+    
+    selectedPlaylist?.let { playlist ->
+        com.gokanaz.kanazplayer.ui.components.PlaylistOptionsBottomSheet(
+            playlist = playlist,
+            onDismiss = { selectedPlaylist = null }
+        )
+    }
 }
 
 @Composable
-fun PlaylistCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
+fun PlaylistItem(
+    playlist: Playlist,
+    onClick: () -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = playlist.name,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        supportingContent = {
+            Text(
+                text = "${playlist.songIds.size} songs",
+                style = MaterialTheme.typography.bodySmall
+            )
+        },
+        leadingContent = {
             Surface(
-                modifier = Modifier.size(56.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.surfaceVariant
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = icon,
+                        imageVector = Icons.Default.PlaylistPlay,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(32.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        trailingContent = {
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "More options"
                 )
             }
-        }
-    }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+    HorizontalDivider()
 }
 
 @Composable
@@ -197,12 +190,12 @@ fun CreatePlaylistDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Buat daftar putar") },
+        title = { Text("Create Playlist") },
         text = {
             TextField(
                 value = playlistName,
                 onValueChange = { playlistName = it },
-                label = { Text("Nama daftar putar") },
+                label = { Text("Playlist Name") },
                 singleLine = true
             )
         },
@@ -215,12 +208,12 @@ fun CreatePlaylistDialog(
                 },
                 enabled = playlistName.isNotBlank()
             ) {
-                Text("Buat")
+                Text("Create")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal")
+                Text("Cancel")
             }
         }
     )

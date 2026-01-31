@@ -1,105 +1,130 @@
 package com.gokanaz.kanazplayer.ui.library.tabs
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.gokanaz.kanazplayer.data.repository.Genre
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @Composable
-fun GenresTab(
-    viewModel: PlayerViewModel,
-    onGenreClick: (com.gokanaz.kanazplayer.data.repository.Genre) -> Unit = {}
-) {
+fun GenresTab(viewModel: PlayerViewModel) {
     val genres by viewModel.genres.collectAsState()
+    var selectedGenre by remember { mutableStateOf<Genre?>(null) }
     
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    if (genres.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "${genres.size} Genre",
-                style = MaterialTheme.typography.titleMedium
-            )
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.SwapVert, contentDescription = "Sort")
-            }
-        }
-        
-        LazyColumn(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(genres) { genre ->
-                val color = getGenreColor(genre.name)
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = genre.name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    supportingContent = {
-                        Text("${genre.songCount} lagu")
-                    },
-                    leadingContent = {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = color,
-                                    shape = MaterialTheme.shapes.medium
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = genre.name.first().uppercase(),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.White
-                            )
-                        }
-                    },
-                    trailingContent = {
-                        IconButton(onClick = { 
-                            if (genre.songs.isNotEmpty()) {
-                                viewModel.playSongs(genre.songs)
-                            }
-                        }) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Play All")
-                        }
-                    },
-                    modifier = Modifier.clickable { onGenreClick(genre) }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No genres found",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+        }
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(8.dp)
+        ) {
+            items(genres) { genre ->
+                GenreGridItem(
+                    genre = genre,
+                    onClick = { },
+                    onMenuClick = { selectedGenre = genre }
+                )
             }
         }
     }
+    
+    selectedGenre?.let { genre ->
+        com.gokanaz.kanazplayer.ui.components.GenreOptionsBottomSheet(
+            genre = genre,
+            onDismiss = { selectedGenre = null }
+        )
+    }
 }
 
-fun getGenreColor(genreName: String): Color {
-    return when (genreName) {
-        "Heavy Metal" -> Color(0xFF6B4C9A)
-        "Rock" -> Color(0xFF8B4C4C)
-        "Pop" -> Color(0xFFE91E63)
-        "Jazz" -> Color(0xFF3F51B5)
-        "Classical" -> Color(0xFF795548)
-        else -> Color(0xFF8B7355)
+@Composable
+fun GenreGridItem(
+    genre: Genre,
+    onClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Column {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = genre.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${genre.songCount} songs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }

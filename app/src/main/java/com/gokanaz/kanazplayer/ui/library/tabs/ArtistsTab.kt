@@ -1,11 +1,11 @@
 package com.gokanaz.kanazplayer.ui.library.tabs
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,77 +15,115 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.gokanaz.kanazplayer.data.repository.Artist
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @Composable
-fun ArtistsTab(
-    viewModel: PlayerViewModel,
-    onArtistClick: (com.gokanaz.kanazplayer.data.repository.Artist) -> Unit = {}
-) {
+fun ArtistsTab(viewModel: PlayerViewModel) {
     val artists by viewModel.artists.collectAsState()
+    var selectedArtist by remember { mutableStateOf<Artist?>(null) }
     
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    if (artists.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "${artists.size} Artis",
-                style = MaterialTheme.typography.titleMedium
-            )
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.SwapVert, contentDescription = "Sort")
-            }
-        }
-        
-        LazyColumn(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(artists) { artist ->
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = artist.name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    supportingContent = {
-                        Text("${artist.albumCount} album | ${artist.songCount} lagu")
-                    },
-                    leadingContent = {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = artist.name.firstOrNull()?.uppercase() ?: "?",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    },
-                    trailingContent = {
-                        IconButton(onClick = { 
-                            if (artist.songs.isNotEmpty()) {
-                                viewModel.playSongs(artist.songs)
-                            }
-                        }) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Play All")
-                        }
-                    },
-                    modifier = Modifier.clickable { onArtistClick(artist) }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No artists found",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(8.dp)
+        ) {
+            items(artists) { artist ->
+                ArtistGridItem(
+                    artist = artist,
+                    onClick = { },
+                    onMenuClick = { selectedArtist = artist }
+                )
+            }
+        }
+    }
+    
+    selectedArtist?.let { artist ->
+        com.gokanaz.kanazplayer.ui.components.ArtistOptionsBottomSheet(
+            artist = artist,
+            onDismiss = { selectedArtist = null }
+        )
+    }
+}
+
+@Composable
+fun ArtistGridItem(
+    artist: Artist,
+    onClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Column {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = artist.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${artist.songCount} songs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

@@ -1,19 +1,24 @@
 package com.gokanaz.kanazplayer.ui.library.tabs
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gokanaz.kanazplayer.data.model.Song
-import com.gokanaz.kanazplayer.ui.components.*
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @Composable
@@ -24,135 +29,94 @@ fun SongsTab(
     val songs by viewModel.songs.collectAsState()
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val playlists by viewModel.playlists.collectAsState()
-    
     var selectedSong by remember { mutableStateOf<Song?>(null) }
-    var showSongOptions by remember { mutableStateOf(false) }
-    var showSongDetails by remember { mutableStateOf(false) }
-    var showAddToPlaylist by remember { mutableStateOf(false) }
     
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    if (songs.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "${songs.size} Lagu",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Row {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.SwapVert, contentDescription = "Sort")
-                }
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.ViewList, contentDescription = "View")
-                }
-            }
-        }
-        
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = { 
-                    viewModel.toggleShuffle()
-                    if (songs.isNotEmpty()) {
-                        onSongClick(songs.random())
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Acak")
-            }
-            OutlinedButton(
-                onClick = { 
-                    if (songs.isNotEmpty()) {
-                        onSongClick(songs.first())
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Putar")
-            }
-        }
-        
-        LazyColumn(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(songs) { song ->
-                SongListItem(
-                    song = song,
-                    isCurrentSong = song == currentSong,
-                    isPlaying = isPlaying && song == currentSong,
-                    onClick = { onSongClick(song) },
-                    onMoreClick = {
-                        selectedSong = song
-                        showSongOptions = true
-                    }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No songs found",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    } else {
+        Column {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (songs.isNotEmpty()) {
+                                viewModel.playSongs(songs.shuffled(), 0)
+                            }
+                        }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Shuffle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        "Shuffle all (${songs.size} songs)",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(songs) { song ->
+                    SongItemWithArt(
+                        song = song,
+                        albumArt = null,
+                        isCurrentSong = song.id == currentSong?.id,
+                        isPlaying = isPlaying && song.id == currentSong?.id,
+                        onClick = { onSongClick(song) },
+                        onMenuClick = { selectedSong = song }
+                    )
+                }
             }
         }
     }
     
-    if (showSongOptions && selectedSong != null) {
-        SongOptionsBottomSheet(
-            song = selectedSong!!,
+    selectedSong?.let { song ->
+        com.gokanaz.kanazplayer.ui.components.SongOptionsBottomSheet(
+            song = song,
             viewModel = viewModel,
-            onDismiss = { showSongOptions = false },
-            onShowPlaylistDialog = {
-                showSongOptions = false
-                showAddToPlaylist = true
-            },
-            onShowSongDetails = {
-                showSongOptions = false
-                showSongDetails = true
-            }
-        )
-    }
-    
-    if (showSongDetails && selectedSong != null) {
-        SongDetailsDialog(
-            song = selectedSong!!,
-            onDismiss = { showSongDetails = false }
-        )
-    }
-    
-    if (showAddToPlaylist && selectedSong != null) {
-        AddToPlaylistDialog(
-            song = selectedSong!!,
-            playlists = playlists,
-            onDismiss = { showAddToPlaylist = false },
-            onCreateNew = { name ->
-                viewModel.createPlaylist(name)
-            },
-            onAddToPlaylist = { playlistId ->
-                viewModel.addSongToPlaylist(playlistId, selectedSong!!.id)
-            }
+            onDismiss = { selectedSong = null }
         )
     }
 }
 
 @Composable
-fun SongListItem(
+fun SongItemWithArt(
     song: Song,
+    albumArt: Bitmap?,
     isCurrentSong: Boolean,
     isPlaying: Boolean,
     onClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMenuClick: () -> Unit
 ) {
     ListItem(
         headlineContent = {
@@ -165,24 +129,55 @@ fun SongListItem(
         },
         supportingContent = {
             Text(
-                text = "${song.artist} - ${song.album}",
+                text = "${song.artist} • ${song.album}",
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodySmall
             )
         },
         leadingContent = {
-            Icon(
-                imageVector = if (isCurrentSong && isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (albumArt != null) {
+                Image(
+                    bitmap = albumArt.asImageBitmap(),
+                    contentDescription = "Album Art",
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Surface(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isCurrentSong && isPlaying) 
+                                Icons.Default.GraphicEq 
+                            else 
+                                Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = if (isCurrentSong) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         },
         trailingContent = {
-            IconButton(onClick = onMoreClick) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More")
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         modifier = Modifier.clickable(onClick = onClick)
     )
+    HorizontalDivider()
 }
