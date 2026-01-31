@@ -36,6 +36,7 @@ object MusicPlayerManager {
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 exoPlayer?.volume = 1.0f
+                exoPlayer?.play()
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 exoPlayer?.pause()
@@ -64,10 +65,16 @@ object MusicPlayerManager {
                 .setWakeMode(C.WAKE_MODE_LOCAL)
                 .build().apply {
                     addListener(object : Player.Listener {
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            _isPlaying.value = isPlaying
+                        }
+                        
                         override fun onIsPlayingChanged(playing: Boolean) {
                             _isPlaying.value = playing
                         }
                     })
+                    
+                    EqualizerManager.initialize(audioSessionId)
                 }
         }
         return exoPlayer!!
@@ -116,8 +123,9 @@ object MusicPlayerManager {
                 
                 player.setMediaItem(mediaItem)
                 player.prepare()
-                player.playWhenReady = true
+                player.play()
                 _currentSong.value = song
+                _isPlaying.value = true
                 _duration.value = song.duration
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -126,32 +134,34 @@ object MusicPlayerManager {
     }
     
     fun togglePlayPause(context: Context) {
-        exoPlayer?.let { player ->
-            if (player.playWhenReady) {
-                player.playWhenReady = false
-            } else {
-                if (requestAudioFocus(context)) {
-                    player.playWhenReady = true
-                }
+        val player = getPlayer(context)
+        if (player.isPlaying) {
+            player.pause()
+        } else {
+            if (requestAudioFocus(context)) {
+                player.play()
             }
         }
+        _isPlaying.value = player.isPlaying
     }
     
     fun seekTo(context: Context, position: Long) {
-        exoPlayer?.seekTo(position)
+        val player = getPlayer(context)
+        player.seekTo(position)
         _currentPosition.value = position
     }
     
     fun getCurrentPosition(context: Context): Long {
-        return exoPlayer?.currentPosition ?: 0L
+        return getPlayer(context).currentPosition
     }
     
     fun getDuration(context: Context): Long {
-        val duration = exoPlayer?.duration ?: 0L
+        val duration = getPlayer(context).duration
         return if (duration > 0) duration else 0
     }
     
     fun release() {
+        EqualizerManager.release()
         exoPlayer?.release()
         exoPlayer = null
         

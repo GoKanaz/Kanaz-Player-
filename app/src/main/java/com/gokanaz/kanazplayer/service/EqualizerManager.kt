@@ -28,16 +28,16 @@ object EqualizerManager {
     
     private val presetValues = mapOf(
         "Normal" to listOf(0f, 0f, 0f, 0f, 0f),
-        "Klasik" to listOf(0f, 0f, 0f, 0f, 0f),
-        "Dance" to listOf(6f, 0f, 2f, 0f, 1f),
+        "Klasik" to listOf(5f, 3f, -2f, 4f, 4f),
+        "Dance" to listOf(4f, 7f, 2f, 0f, 1f),
         "Rata" to listOf(6f, 0f, 0f, 0f, 6f),
-        "Folk" to listOf(3f, 0f, 0f, 2f, -1f),
-        "Heavy Metal" to listOf(4f, 1f, 9f, 3f, 0f),
-        "Hip Hop" to listOf(5f, 3f, 0f, 1f, 3f),
-        "Jazz" to listOf(4f, 2f, -2f, 2f, 5f),
-        "Pop" to listOf(-1f, 2f, 5f, 1f, -2f),
+        "Folk" to listOf(5f, 0f, 0f, 2f, -1f),
+        "Heavy Metal" to listOf(4f, 3f, 0f, 4f, 5f),
+        "Hip Hop" to listOf(5f, 4f, -1f, 3f, 4f),
+        "Jazz" to listOf(5f, 3f, -2f, 2f, 6f),
+        "Pop" to listOf(-2f, 2f, 5f, 1f, -2f),
         "Rock" to listOf(5f, 3f, -1f, 3f, 5f),
-        "Penguat FX" to listOf(3f, 0f, 0f, 2f, 3f),
+        "Penguat FX" to listOf(3f, 0f, 4f, 5f, 3f),
         "Pengguna" to listOf(0f, 0f, 0f, 0f, 0f)
     )
     
