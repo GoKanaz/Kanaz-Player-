@@ -348,6 +348,35 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playlistRepository.addSongToPlaylist(playlistId, songId)
     }
     
+    fun addToQueue(song: Song) {
+        val currentQueue = _queue.value.toMutableList()
+        currentQueue.add(song)
+        _queue.value = currentQueue
+    }
+    
+    fun addToQueueNext(song: Song) {
+        val currentQueue = _queue.value.toMutableList()
+        if (currentQueue.isNotEmpty()) {
+            val currentIndex = currentQueue.indexOfFirst { it.id == _currentSong.value?.id }
+            if (currentIndex >= 0 && currentIndex < currentQueue.size - 1) {
+                currentQueue.add(currentIndex + 1, song)
+            } else {
+                currentQueue.add(song)
+            }
+        } else {
+            currentQueue.add(song)
+        }
+        _queue.value = currentQueue
+    }
+    
+    suspend fun getAlbumArt(song: Song): Bitmap? {
+        return try {
+            repository.getAlbumArt(song)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
     override fun onCleared() {
         super.onCleared()
         equalizerEffect?.release()
