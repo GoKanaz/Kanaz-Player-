@@ -1,19 +1,26 @@
 package com.gokanaz.kanazplayer.ui.library
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gokanaz.kanazplayer.data.model.Song
+import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,11 +28,13 @@ fun SongListScreen(
     songs: List<Song>,
     currentSong: Song?,
     isPlaying: Boolean,
+    viewModel: PlayerViewModel,
     onSongClick: (Song) -> Unit,
     onBackClick: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
+    var selectedSong by remember { mutableStateOf<Song?>(null) }
     
     val filteredSongs = remember(songs, searchQuery) {
         if (searchQuery.isEmpty()) {
@@ -96,24 +105,36 @@ fun SongListScreen(
                     .padding(paddingValues)
             ) {
                 items(filteredSongs) { song ->
-                    SongItem(
+                    SongItemWithArt(
                         song = song,
+                        albumArt = null,
                         isCurrentSong = song.id == currentSong?.id,
                         isPlaying = isPlaying && song.id == currentSong?.id,
-                        onClick = { onSongClick(song) }
+                        onClick = { onSongClick(song) },
+                        onMenuClick = { selectedSong = song }
                     )
                 }
             }
         }
     }
+    
+    selectedSong?.let { song ->
+        com.gokanaz.kanazplayer.ui.components.SongOptionsBottomSheet(
+            song = song,
+            viewModel = viewModel,
+            onDismiss = { selectedSong = null }
+        )
+    }
 }
 
 @Composable
-fun SongItem(
+fun SongItemWithArt(
     song: Song,
+    albumArt: Bitmap?,
     isCurrentSong: Boolean,
     isPlaying: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMenuClick: () -> Unit
 ) {
     ListItem(
         headlineContent = {
@@ -133,26 +154,53 @@ fun SongItem(
             )
         },
         leadingContent = {
-            if (isCurrentSong && isPlaying) {
-                Icon(
-                    imageVector = Icons.Default.GraphicEq,
-                    contentDescription = "Now Playing",
-                    tint = MaterialTheme.colorScheme.primary
+            if (albumArt != null) {
+                Image(
+                    bitmap = albumArt.asImageBitmap(),
+                    contentDescription = "Album Art",
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Crop
                 )
             } else {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Surface(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isCurrentSong && isPlaying) 
+                                Icons.Default.GraphicEq 
+                            else 
+                                Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = if (isCurrentSong) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         },
         trailingContent = {
-            Text(
-                text = formatDuration(song.duration),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatDuration(song.duration),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         },
         modifier = Modifier.clickable(onClick = onClick)
     )
