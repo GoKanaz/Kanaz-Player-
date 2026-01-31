@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.gokanaz.kanazplayer.data.model.Song
+import com.gokanaz.kanazplayer.ui.components.*
 import com.gokanaz.kanazplayer.ui.player.PlayerViewModel
 
 @Composable
@@ -23,6 +24,12 @@ fun SongsTab(
     val songs by viewModel.songs.collectAsState()
     val currentSong by viewModel.currentSong.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val playlists by viewModel.playlists.collectAsState()
+    
+    var selectedSong by remember { mutableStateOf<Song?>(null) }
+    var showSongOptions by remember { mutableStateOf(false) }
+    var showSongDetails by remember { mutableStateOf(false) }
+    var showAddToPlaylist by remember { mutableStateOf(false) }
     
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -87,7 +94,11 @@ fun SongsTab(
                     song = song,
                     isCurrentSong = song == currentSong,
                     isPlaying = isPlaying && song == currentSong,
-                    onClick = { onSongClick(song) }
+                    onClick = { onSongClick(song) },
+                    onMoreClick = {
+                        selectedSong = song
+                        showSongOptions = true
+                    }
                 )
             }
             
@@ -96,6 +107,43 @@ fun SongsTab(
             }
         }
     }
+    
+    if (showSongOptions && selectedSong != null) {
+        SongOptionsBottomSheet(
+            song = selectedSong!!,
+            viewModel = viewModel,
+            onDismiss = { showSongOptions = false },
+            onShowPlaylistDialog = {
+                showSongOptions = false
+                showAddToPlaylist = true
+            },
+            onShowSongDetails = {
+                showSongOptions = false
+                showSongDetails = true
+            }
+        )
+    }
+    
+    if (showSongDetails && selectedSong != null) {
+        SongDetailsDialog(
+            song = selectedSong!!,
+            onDismiss = { showSongDetails = false }
+        )
+    }
+    
+    if (showAddToPlaylist && selectedSong != null) {
+        AddToPlaylistDialog(
+            song = selectedSong!!,
+            playlists = playlists,
+            onDismiss = { showAddToPlaylist = false },
+            onCreateNew = { name ->
+                viewModel.createPlaylist(name)
+            },
+            onAddToPlaylist = { playlistId ->
+                viewModel.addSongToPlaylist(playlistId, selectedSong!!.id)
+            }
+        )
+    }
 }
 
 @Composable
@@ -103,7 +151,8 @@ fun SongListItem(
     song: Song,
     isCurrentSong: Boolean,
     isPlaying: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMoreClick: () -> Unit
 ) {
     ListItem(
         headlineContent = {
@@ -130,7 +179,7 @@ fun SongListItem(
             )
         },
         trailingContent = {
-            IconButton(onClick = { }) {
+            IconButton(onClick = onMoreClick) {
                 Icon(Icons.Default.MoreVert, contentDescription = "More")
             }
         },

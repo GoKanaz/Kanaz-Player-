@@ -16,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.gokanaz.kanazplayer.ui.components.*
 import com.gokanaz.kanazplayer.ui.equalizer.EqualizerDialog
 import com.gokanaz.kanazplayer.ui.queue.QueueDialog
 import com.gokanaz.kanazplayer.ui.sleep.SleepTimerDialog
@@ -36,10 +37,14 @@ fun FullPlayerScreen(
     val queue by viewModel.queue.collectAsState()
     val sleepTimerActive by viewModel.sleepTimerActive.collectAsState()
     val sleepTimerRemaining by viewModel.sleepTimerRemaining.collectAsState()
+    val playlists by viewModel.playlists.collectAsState()
     
     var showSleepTimer by remember { mutableStateOf(false) }
     var showEqualizer by remember { mutableStateOf(false) }
     var showQueue by remember { mutableStateOf(false) }
+    var showPlayerOptions by remember { mutableStateOf(false) }
+    var showSongDetails by remember { mutableStateOf(false) }
+    var showAddToPlaylist by remember { mutableStateOf(false) }
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -84,7 +89,7 @@ fun FullPlayerScreen(
                     }
                 }
                 
-                IconButton(onClick = { }) {
+                IconButton(onClick = { showPlayerOptions = true }) {
                     Icon(
                         Icons.Default.MoreVert,
                         contentDescription = "More",
@@ -339,6 +344,30 @@ fun FullPlayerScreen(
         }
     }
     
+    if (showPlayerOptions && currentSong != null) {
+        PlayerOptionsBottomSheet(
+            song = currentSong!!,
+            viewModel = viewModel,
+            onDismiss = { showPlayerOptions = false },
+            onShowPlaylistDialog = {
+                showPlayerOptions = false
+                showAddToPlaylist = true
+            },
+            onShowSongDetails = {
+                showPlayerOptions = false
+                showSongDetails = true
+            },
+            onShowSleepTimer = {
+                showPlayerOptions = false
+                showSleepTimer = true
+            },
+            onShowEqualizer = {
+                showPlayerOptions = false
+                showEqualizer = true
+            }
+        )
+    }
+    
     if (showSleepTimer) {
         SleepTimerDialog(
             isActive = sleepTimerActive,
@@ -376,6 +405,27 @@ fun FullPlayerScreen(
             },
             onClear = {
                 viewModel.clearQueue()
+            }
+        )
+    }
+    
+    if (showSongDetails && currentSong != null) {
+        SongDetailsDialog(
+            song = currentSong!!,
+            onDismiss = { showSongDetails = false }
+        )
+    }
+    
+    if (showAddToPlaylist && currentSong != null) {
+        AddToPlaylistDialog(
+            song = currentSong!!,
+            playlists = playlists,
+            onDismiss = { showAddToPlaylist = false },
+            onCreateNew = { name ->
+                viewModel.createPlaylist(name)
+            },
+            onAddToPlaylist = { playlistId ->
+                viewModel.addSongToPlaylist(playlistId, currentSong!!.id)
             }
         )
     }
