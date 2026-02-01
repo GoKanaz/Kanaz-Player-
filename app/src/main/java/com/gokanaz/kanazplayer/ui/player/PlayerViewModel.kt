@@ -132,14 +132,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
     
     fun setEqualizerPreset(presetName: String) {
-        _currentPreset.value = presetName
         val preset = EqualizerPreset.getPresets().find { it.name == presetName }
         preset?.let {
-            setBand60Hz(it.bands[0])
-            setBand230Hz(it.bands[1])
-            setBand910Hz(it.bands[2])
-            setBand4kHz(it.bands[3])
-            setBand14kHz(it.bands[4])
+            _currentPreset.value = presetName
+            _band60Hz.value = it.bands[0]
+            _band230Hz.value = it.bands[1]
+            _band910Hz.value = it.bands[2]
+            _band4kHz.value = it.bands[3]
+            _band14kHz.value = it.bands[4]
+            try {
+                equalizerEffect?.let { eq ->
+                    if (eq.numberOfBands >= 5) {
+                        eq.setBandLevel(0, it.bands[0].toShort())
+                        eq.setBandLevel(1, it.bands[1].toShort())
+                        eq.setBandLevel(2, it.bands[2].toShort())
+                        eq.setBandLevel(3, it.bands[3].toShort())
+                        eq.setBandLevel(4, it.bands[4].toShort())
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     
